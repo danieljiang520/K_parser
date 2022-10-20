@@ -67,3 +67,9 @@ k_parser.getPart(10003, display=True)
 shows all parts
 
 <img width="859" alt="Screen Shot 2022-10-20 at 09 35 35" src="https://user-images.githubusercontent.com/71047773/196963449-29b726a8-bc85-4166-af22-5683e831073f.png">
+
+### showAllNodes
+show all nodes
+
+<img width="859" alt="Screen Shot 2022-10-20 at 16 10 59" src="https://user-images.githubusercontent.com/71047773/197048423-84a6f3d9-dfe3-4b81-99a2-34f10db5e4dd.png">
+
