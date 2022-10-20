@@ -231,6 +231,11 @@ class K_Parser:
         return m
 
 
+    def showAllNodes(self) -> pointcloud.Points:
+        self.nodes.show()
+        return self.nodes
+
+
 
 
 
@@ -249,3 +254,4 @@ if __name__ == "__main__":
     # k_parser.getElementShell(100005, display=True)
     # k_parser.getPart(10003, display=True)
     k_parser.showAll()
+    # k_parser.showAllNodes()
