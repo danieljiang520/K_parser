@@ -8,7 +8,7 @@ optional arguments:
   -f FILEPATHS [FILEPATHS ...], --filepaths FILEPATHS [FILEPATHS ...]
                         Input k files' ABSOLUTE filepaths
 ```
-Example:
+Example for two k_files:
 ```
 % python3 k_parser.py -f /Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Nodes.k /Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Mesh_Components.k
 ```
