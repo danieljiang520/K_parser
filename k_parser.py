@@ -59,6 +59,7 @@ class K_Parser:
         with open(filename) as reader:
             # Read the entire file line by line
             for line in reader:
+                line = line.strip()
 
                 # Skip comment
                 if line[0] == '$' or line == '':
@@ -76,7 +77,7 @@ class K_Parser:
 
                 # Append line to listOFLines
                 else:
-                    listOfLines.append(line.strip().split())
+                    listOfLines.append(line.split())
 
 
     def NODE(self, listOfLines: list[list[str]]) -> None:
@@ -161,7 +162,7 @@ class K_Parser:
 
     def getNode(self, nid: int) -> list:
         if nid in self.nodesIndDict:
-            return list(self.nodes.points()[self.nodesIndDict[nid]])
+            return self.nodes.points()[self.nodesIndDict[nid]]
         return []
 
 
@@ -181,7 +182,7 @@ class K_Parser:
             m = mesh.Mesh()
         else:
             nodeIds = self.elementShellDict[eid]
-            verts = list(self.nodes.points())
+            verts = self.nodes.points()
             faces = [[self.nodesIndDict[nid] for nid in nodeIds ]]
             m = mesh.Mesh([verts, faces])
 
@@ -198,12 +199,11 @@ class K_Parser:
 
         else:
             elementShellIds = self.partsDict[pid]
-            verts = list(self.nodes.points())
+            verts = self.nodes.points()
             faces = []
             for eid in elementShellIds:
-                if eid in self.elementShellDict:
-                    nodeIds = self.elementShellDict[eid]
-                    faces.append([self.nodesIndDict[nid] for nid in nodeIds])
+                nodeIds = self.elementShellDict[eid]
+                faces.append([self.nodesIndDict[nid] for nid in nodeIds])
 
             m = mesh.Mesh([verts, faces])
 
@@ -213,13 +213,23 @@ class K_Parser:
         return m
 
 
-    def showAll(self) -> None:
-        print(len(self.partsDict))
-        parts = []
-        for pid in self.partsDict:
-            parts.append(self.getPart(pid))
+    def showAll(self) -> mesh.Mesh:
+        '''
+        NOTE: Previous use mesh.merge on the mesh of every part obtained from getPart. However,
+        iterating to get all faces is faster and more efficient
+        '''
 
-        mesh.merge(parts).show()
+        verts = self.nodes.points()
+        faces = []
+        for pid in self.partsDict:
+            elementShellIds = self.partsDict[pid]
+            for eid in elementShellIds:
+                nodeIds = self.elementShellDict[eid]
+                faces.append([self.nodesIndDict[nid] for nid in nodeIds])
+
+        m = mesh.Mesh([verts, faces]).show()
+        return m
+
 
 
 
