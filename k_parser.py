@@ -1,3 +1,4 @@
+import pathlib, argparse
 from collections import defaultdict
 from sys import stderr
 from vedo import pointcloud, mesh
@@ -29,7 +30,7 @@ class K_Parser:
     ''' Parser for reading LS-DYNA k files
     '''
 
-    def __init__(self, filenames: list[str]) -> None:
+    def __init__(self, args: argparse.ArgumentParser) -> None:
         '''
         '''
         self.elementShellDict = defaultdict(list[int]) # {eid1: [nid1, nid2, nid3, nid4]}
@@ -38,9 +39,13 @@ class K_Parser:
         self.partsDict = defaultdict(list[int]) # {pid: [eid, eid, eid]}
         self.partsInfo = defaultdict(Part)
 
-
-        for filename in filenames:
+        for filename in args.filepaths:
             self.readFile(filename)
+
+        print("Finished Reading kfiles!")
+        print(f"Total nodes: {len(self.nodesIndDict)}")
+        print(f"Total elements_shells: {len(self.elementShellDict)}")
+        print(f"Total parts: {len(self.partsDict)}")
 
 
     def readFile(self, filename: str) -> None:
@@ -63,7 +68,6 @@ class K_Parser:
                 elif line[0] == '*':
                     # Execute previous mode
                     if mode in self.modesDict:
-                        print("execute", mode)
                         self.modesDict[mode](self, listOfLines)
 
                     # Update mode
@@ -224,12 +228,20 @@ class K_Parser:
 #---------------------------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------------------------
 
-parser = K_Parser([r'/Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Nodes.k',
-          r'/Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Mesh_Components.k'])
+# parser = K_Parser([r'/Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Nodes.k',
+#           r'/Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Mesh_Components.k'])
 # p = parser.getNode(100000)
 # print(p)
 # p = parser.getNodes([100000,100001])
 # p.show()
 # parser.getElementShell(100005)
 # parser.getPart(10003, display=True)
-parser.showAll()
+# parser.showAll()
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('-f','--filepaths', nargs='+', help='Input k files\' filepaths', required=True)
+    args = argparser.parse_args()
+    k_parser = K_Parser(args)
+    k_parser.getPart(10003, display=True)
