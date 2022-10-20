@@ -170,7 +170,7 @@ class K_Parser:
         pts = pointcloud.Points(nodes)
 
         if display:
-            pts.show()
+            pts.ps(10).show()
 
         return pts
 
@@ -186,7 +186,7 @@ class K_Parser:
             m = mesh.Mesh([verts, faces])
 
         if display:
-            m.backColor('violet').lineColor('tomato').lineWidth(2).show()
+            m.show()
 
         return m
 
@@ -228,20 +228,14 @@ class K_Parser:
 #---------------------------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------------------------
 
-# parser = K_Parser([r'/Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Nodes.k',
-#           r'/Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Mesh_Components.k'])
-# p = parser.getNode(100000)
-# print(p)
-# p = parser.getNodes([100000,100001])
-# p.show()
-# parser.getElementShell(100005)
-# parser.getPart(10003, display=True)
-# parser.showAll()
-
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-f','--filepaths', nargs='+', help='Input k files\' filepaths', required=True)
     args = argparser.parse_args()
     k_parser = K_Parser(args)
-    k_parser.getPart(10003, display=True)
+
+    # k_parser.getNodes([100000,100001], display=True)
+    # k_parser.getElementShell(100005, display=True)
+    # k_parser.getPart(10003, display=True)
+    k_parser.showAll()
