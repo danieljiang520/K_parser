@@ -1,6 +1,6 @@
 from collections import defaultdict
 from sys import stderr
-from vedo import pointcloud, tetmesh, mesh
+from vedo import pointcloud, mesh
 from typing import NamedTuple
 
 
@@ -26,10 +26,10 @@ def eprint(*args, **kwargs):
 #---------------------------------------------------------------------------------------------------
 
 class K_Parser:
-    '''
+    ''' Parser for reading LS-DYNA k files
     '''
 
-    def __init__(self, filenames) -> None:
+    def __init__(self, filenames: list[str]) -> None:
         '''
         '''
         self.elementShellDict = defaultdict(list[int]) # {eid1: [nid1, nid2, nid3, nid4]}
