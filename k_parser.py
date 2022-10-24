@@ -1,8 +1,8 @@
-import pathlib, argparse
+import argparse
 from collections import defaultdict
 from sys import stderr
-from vedo import pointcloud, mesh
-from typing import NamedTuple
+from typing import NamedTuple, Union
+from vedo import mesh, pointcloud
 
 
 #---------------------------------------------------------------------------------------------------
@@ -26,11 +26,11 @@ def eprint(*args, **kwargs):
 #---------------------------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------------------------
 
-class K_Parser:
+class DynaModel:
     ''' Parser for reading LS-DYNA k files
     '''
 
-    def __init__(self, args: argparse.ArgumentParser) -> None:
+    def __init__(self, args: Union[argparse.ArgumentParser, list[str],  str]) -> None:
         '''
         '''
         self.elementShellDict = defaultdict(list[int]) # {eid1: [nid1, nid2, nid3, nid4]}
@@ -39,13 +39,28 @@ class K_Parser:
         self.partsDict = defaultdict(list[int]) # {pid: [eid, eid, eid]}
         self.partsInfo = defaultdict(Part)
 
-        for filename in args.filepaths:
-            self.readFile(filename)
+        if type(args) == argparse.ArgumentParser:
+
+            for filename in args.filepaths:
+                self.readFile(filename)
+
+        elif type(args) == list:
+            for filename in args:
+                self.readFile(filename)
+
+        elif type(args) == str:
+            self.readFile(args)
+
+        else:
+            print("unknown argument: ", args)
+            return
+
 
         print("Finished Reading kfiles!")
         print(f"Total nodes: {len(self.nodesIndDict)}")
         print(f"Total elements_shells: {len(self.elementShellDict)}")
         print(f"Total parts: {len(self.partsDict)}")
+
 
 
     def readFile(self, filename: str) -> None:
@@ -75,7 +90,7 @@ class K_Parser:
                     listOfLines.clear()
                     mode = line.split()[0]
 
-                # Append line to listOFLines
+                # Append line to listOfLines
                 else:
                     listOfLines.append(line.split())
 
@@ -248,10 +263,10 @@ if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-f','--filepaths', nargs='+', help='Input k files\' filepaths', required=True)
     args = argparser.parse_args()
-    k_parser = K_Parser(args)
+    k_parser = DynaModel(args)
 
     # k_parser.getNodes([100000,100001], display=True)
     # k_parser.getElementShell(100005, display=True)
-    # k_parser.getPart(10003, display=True)
-    k_parser.showAll()
+    k_parser.getPart(20003, display=True)
+    # k_parser.showAll()
     # k_parser.showAllNodes()
