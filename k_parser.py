@@ -128,20 +128,24 @@ class DynaModel:
 
                 # Keyword line
                 elif kline.is_keyword:
+                    # Execute part
+                    # NOTE: PART has multiple lines of data, therefore we record all the lines and
+                    # process them at the end of the KEYWORD section
                     if currMode is KEYWORD.PART:
-                        self.modesDict[currMode](self, partlist)
+                        self.__modesDict[currMode](self, partlist)
                         partlist.clear()
 
                     # Update mode
                     currMode = kline.keyword
 
                 # Data line
-                elif kline.keyword in self.modesDict:
-                    if currMode is KEYWORD.PART:
+                elif kline.keyword in self.__modesDict:
+                    # if keyword is PART, Add kline to partlist
+                    if kline.keyword is KEYWORD.PART:
                         partlist.append(kline)
+                    # Execute line
                     else:
-                        # Execute line
-                        self.modesDict[kline.keyword](self, kline)
+                        self.__modesDict[kline.keyword](self, kline)
 
 
     def __NODE(self, kline: KLine) -> None:
@@ -232,7 +236,7 @@ class DynaModel:
         pass
 
 
-    modesDict = {
+    __modesDict = {
         KEYWORD.ELEMENT_SHELL: __ELEMENT_SHELL,
         KEYWORD.END: __END,
         KEYWORD.KEYWORD: __KEYWORD,
