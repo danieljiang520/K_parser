@@ -14,7 +14,10 @@ Example for two k_files:
 ```
 
 ## Structure
-Reference from https://canvas.kth.se/courses/6376/files/1398637/download?verifier=vKYrSZc7FmwSxnsJbH6QYX0fb8lTc2UXjszIKX6I&wrap=1
+References:
+- https://canvas.kth.se/courses/6376/files/1398637/download?verifier=vKYrSZc7FmwSxnsJbH6QYX0fb8lTc2UXjszIKX6I&wrap=1
+- https://supunsetunga.medium.com/writing-a-parser-getting-started-44ba70bb6cc9
+
 
 - Part
   -  Element_Shell
