@@ -26,11 +26,12 @@ class KEYWORD(Enum):
 
     usage: KEYWORD.name, KEYWORD.value, hashable with string
     '''
-    ELEMENT_SHELL = 1
-    END = 2
-    KEYWORD = 3
-    NODE = 4
-    PART = 5
+    UNKNOWN = 1
+    ELEMENT_SHELL = 2
+    END = 3
+    KEYWORD = 4
+    NODE = 5
+    PART = 6
 
 
 class KLine:
@@ -52,17 +53,15 @@ class KLine:
         if firstItem[0] == '$' or not line:
             self.is_valid = False
 
+        # Keyword line
         elif firstItem[0] == '*':
             keyword = firstItem[1:]
+            self.is_valid = True
+            self.is_keyword = True
+            # if keyword is not defined, set keyword to UNKNOWN; otherwise, set keyword
+            self.keyword = KEYWORD[firstItem[1:]] if keyword in KEYWORD._member_names_ else KEYWORD.UNKNOWN
 
-            # check if keyword is defined
-            if keyword in KEYWORD._member_names_:
-                self.is_valid = True
-                self.is_keyword = True
-                self.keyword = KEYWORD[firstItem[1:]]
-            else:
-                self.is_valid = False
-
+        # Everything else
         else:
             self.is_valid = True
             self.is_keyword = False
@@ -123,11 +122,11 @@ class DynaModel:
             for line in reader:
                 kline = KLine(line, currMode)
 
-                # Skip invalid kLine
+                # Skip comment or empty line
                 if not kline.is_valid:
                     continue
 
-                # Change mode
+                # Keyword line
                 elif kline.is_keyword:
                     if currMode is KEYWORD.PART:
                         self.modesDict[currMode](self, partlist)
@@ -136,13 +135,13 @@ class DynaModel:
                     # Update mode
                     currMode = kline.keyword
 
-                # Append line to listOfLines
-                elif currMode in self.modesDict:
+                # Data line
+                elif kline.keyword in self.modesDict:
                     if currMode is KEYWORD.PART:
                         partlist.append(kline)
                     else:
                         # Execute line
-                        self.modesDict[currMode](self, kline)
+                        self.modesDict[kline.keyword](self, kline)
 
 
     def __NODE(self, kline: KLine) -> None:
