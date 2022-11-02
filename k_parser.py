@@ -253,7 +253,7 @@ class DynaModel:
         '''
         if nid not in self.nodesIndDict:
             eprint(f"Node id: {nid} not in nodesIndDict")
-            return None
+            return () # empty tuple
         return self.nodes[self.nodesIndDict[nid]]
 
 
@@ -275,7 +275,7 @@ class DynaModel:
         '''
         if eid not in self.elementShellDict:
             eprint(f"Element_Shell id: {eid} not in elementShellDict")
-            return None
+            return []
 
         nodeIds = self.elementShellDict[eid]
 
@@ -302,7 +302,7 @@ class DynaModel:
         '''
         if pid not in self.partsDict:
             eprint(f"Part id: {pid} not in partsDict")
-            return None
+            return []
 
         elementShellIds = self.partsDict[pid]
         match outputType:
@@ -344,7 +344,8 @@ if __name__ == "__main__":
     # command: python3 k_parser.py -f /Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Nodes.k /Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Mesh_Components.k
     from vedo import mesh
     verts = k_parser.getAllNodes()
-    faces = k_parser.getPart(pid=20003, outputType=1)
+    # faces = k_parser.getPart(pid=20003, outputType=1)
+    faces = k_parser.getAllPart()
     m = mesh.Mesh([verts, faces]).show()
 
     # k_parser.getNodes([100000,100001])
