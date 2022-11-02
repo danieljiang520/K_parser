@@ -1,4 +1,7 @@
 # K_parser
+## Requirements
+- Python 3.10+
+
 ## Usage
 ```
 usage: k_parser.py [-h] -f FILEPATHS [FILEPATHS ...]
