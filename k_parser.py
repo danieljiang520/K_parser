@@ -199,16 +199,7 @@ class DynaModel:
             eprint(f"Invalid PART: too less arguments")
             return
 
-        args = [int(i) for i in klineList[1].values]
-        pid = args[0]
-        secid = args[1]
-        mid = args[2]
-        eosid = args[3]
-        hgid = args[4]
-        grav = args[5]
-        adpopt = args[6]
-        timid = args[7]
-
+        pid, secid, mid, eosid, hgid, grav, adpopt, timid = [int(i) for i in klineList[1].values]
         self.partsInfo[pid] = Part(header, secid, mid, eosid, hgid, grav, adpopt, timid)
 
 
@@ -253,8 +244,8 @@ class DynaModel:
         ''' Return the ELEMENT_SHELL given its ID
 
         Use outputType as:
-            0 = list of coordinantes of the corresponding nodes
-            1 = indices of the cooresponding nodes in self.nodes (better compatibility with vedo's
+            0 = list of coordinates of the corresponding nodes
+            1 = indices of the corresponding nodes in self.nodes (better compatibility with vedo's
             mesh constructor)
         '''
         if eid not in self.elementShellDict:
@@ -277,10 +268,10 @@ class DynaModel:
         ''' Return the PART given its ID
 
         Use outputType as:
-            0 = list of list of coordinantes of the corresponding element shells.
+            0 = list of list of coordinates of the corresponding element shells.
                 e.g. [[(x1,y1,z1),(x2,y2,z2),(x3,y3,z3)],[(x4,y4,z4)]] where p1,p2,p3 compose
                 ELEMENT_SHELL1 and p4 composes ELEMENT_SHELL2
-            1 = indices of the cooresponding nodes in self.nodes (better compatibility with vedo's
+            1 = indices of the corresponding nodes in self.nodes (better compatibility with vedo's
                 mesh constructor)
                 e.g. [[n1_ind,n2_ind,n3_ind],[n4_ind]]
         '''
@@ -333,8 +324,12 @@ if __name__ == "__main__":
         eprint("No input filepaths or directory provided")
         exit(1)
 
-    # Example: display a part using vedo
-    # python3 k_parser.py -f /Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Nodes.k /Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Mesh_Components.k
+    """
+    Example: display a part using vedo
+    python3 k_parser.py -d data/UMTRI_M50
+    python3 k_parser.py -f data/UMTRI_M50/UMTRI_HBM_M50_V1.2_Mesh_Components.k data/UMTRI_M50/UMTRI_HBM_M50_V1.2_Nodes.k
+    """
+
     from vedo import mesh
     verts = k_parser.getAllNodes()
     # faces = k_parser.getPart(pid=20003, outputType=1)
