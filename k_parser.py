@@ -1,39 +1,19 @@
-import argparse
+# -----------------------------------------------------------
+# Author: Daniel Jiang (danieldj@umich.edu)
+# -----------------------------------------------------------
+
+# %% standard lib imports
+import argparse, pathlib
 from collections import defaultdict
 from enum import Enum
-# from scipy.spatial import KDTree
 from sys import stderr
-from typing import NamedTuple, Union, Tuple
+from typing import Union, Tuple
 
+# %% first party imports
+from utils import KEYWORD, Part, getAllKFilesInFolder
 
-# Public functions and types
 #===================================================================================================
-
-class Part(NamedTuple):
-    header: str
-    secid: int
-    mid: int
-    eosid: int
-    hgid: int
-    grav: int
-    adpopt: int
-    timid: int
-
-
-class KEYWORD(Enum):
-    ''' Enumerations for different types of KEYWORD
-    NOTE: Alphabetically sorted, and the parser only support the following keywords
-
-    usage: KEYWORD.name, KEYWORD.value, hashable with string
-    '''
-    UNKNOWN = 1
-    ELEMENT_SHELL = 2
-    END = 3
-    KEYWORD = 4
-    NODE = 5
-    PART = 6
-
-
+# KLine Class
 class KLine:
     ''' Lexer for the parser
     Reference: https://supunsetunga.medium.com/writing-a-parser-getting-started-44ba70bb6cc9
@@ -75,9 +55,8 @@ def eprint(*args, **kwargs):
     print(*args, file=stderr, **kwargs)
 
 
-# Dyna Model Definition
 #===================================================================================================
-
+# Dyna Model Definition
 class DynaModel:
     ''' Parser for reading LS-DYNA k files
     '''
@@ -245,8 +224,8 @@ class DynaModel:
     }
 
 
-# Public methods
 #---------------------------------------------------------------------------------------------------
+# Public methods
 
     def getNode(self, nid: int) -> Tuple[float]:
         '''
@@ -329,23 +308,33 @@ class DynaModel:
 
 
 
-# Main
 #===================================================================================================
-
-
+# Main
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('-f','--filepaths', nargs='+', help='Input k files\' filepaths', required=True)
+    group = argparser.add_mutually_exclusive_group(required=True)
+    # list of filepaths
+    group.add_argument('-f','--filepaths', nargs='+', help='Input k files\' filepaths', required=False)
+    # single string of the directory path
+    group.add_argument('-d','--directory', help='Input k files\' directory', required=False)
     args = argparser.parse_args()
-    k_parser = DynaModel(args=args.filepaths)
 
+    if args.filepaths:
+        k_parser = DynaModel(args=args.filepaths)
+    elif args.directory:
+        args.directory = getAllKFilesInFolder(args.directory)
+        k_parser = DynaModel(args=args.directory)
+    else:
+        eprint("No input filepaths or directory provided")
+        exit(1)
 
     # Example: display a part using vedo
-    # command: python3 k_parser.py -f /Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Nodes.k /Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Mesh_Components.k
+    # python3 k_parser.py -f /Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Nodes.k /Users/danieljiang/Documents/UMTRI/UMTRI_M50/UMTRI_HBM_M50_V1.2_Mesh_Components.k
     from vedo import mesh
     verts = k_parser.getAllNodes()
     # faces = k_parser.getPart(pid=20003, outputType=1)
     faces = k_parser.getAllPart()
+    print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()
 
     # k_parser.getNodes([100000,100001])
