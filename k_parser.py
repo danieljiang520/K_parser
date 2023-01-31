@@ -10,7 +10,7 @@ from sys import stderr
 from typing import Union, Tuple
 
 # %% first party imports
-from utils import KEYWORD, Part, getAllKFilesInFolder
+from utils import *
 
 #===================================================================================================
 # KLine Class
@@ -49,12 +49,6 @@ class KLine:
             self.values = line
 
 
-
-
-def eprint(*args, **kwargs):
-    print(*args, file=stderr, **kwargs)
-
-
 #===================================================================================================
 # Dyna Model Definition
 class DynaModel:
@@ -70,15 +64,16 @@ class DynaModel:
         self.partsDict = defaultdict(list[int]) # {pid: [eid, eid, eid]}
         self.partsInfo = defaultdict(Part)
 
-        if type(args) == list:
-            for filename in args:
-                self.__readFile(filename)
 
-        elif type(args) == str:
-            self.__readFile(args)
+        if is_list_of_strings(args):
+            for filename in args:
+                self.__readFile__(filename)
+
+        elif isinstance(args, str):
+            self.__readFile__(args)
 
         else:
-            print("unknown argument: ", args)
+            eprint("unknown argument: ", args)
             return
 
         # self.nodesTree = KDTree(self.nodes)
@@ -88,7 +83,7 @@ class DynaModel:
         print(f"Total parts: {len(self.partsDict)}")
 
 
-    def __readFile(self, filename: str) -> None:
+    def __readFile__(self, filename: str) -> None:
         '''
         '''
 
@@ -111,23 +106,23 @@ class DynaModel:
                     # NOTE: PART has multiple lines of data, therefore we record all the lines and
                     # process them at the end of the KEYWORD section
                     if currMode is KEYWORD.PART:
-                        self.__modesDict[currMode](self, partlist)
+                        self._modesDict[currMode](self, partlist)
                         partlist.clear()
 
                     # Update mode
                     currMode = kline.keyword
 
                 # Data line
-                elif kline.keyword in self.__modesDict:
+                elif kline.keyword in self._modesDict:
                     # if keyword is PART, Add kline to partlist
                     if kline.keyword is KEYWORD.PART:
                         partlist.append(kline)
                     # Execute line
                     else:
-                        self.__modesDict[kline.keyword](self, kline)
+                        self._modesDict[kline.keyword](self, kline)
 
 
-    def __NODE(self, kline: KLine) -> None:
+    def __NODE__(self, kline: KLine) -> None:
         '''
         '''
 
@@ -152,7 +147,7 @@ class DynaModel:
             self.nodes.append(pos)
 
 
-    def __ELEMENT_SHELL(self, kline: KLine) -> None:
+    def __ELEMENT_SHELL__(self, kline: KLine) -> None:
         '''
         '''
 
@@ -180,7 +175,7 @@ class DynaModel:
             self.partsDict[pid].append(eid)
 
 
-    def __PART(self, klineList: list[KLine]) -> None:
+    def __PART__(self, klineList: list[KLine]) -> None:
         ''' NOTE: Only reading the basic information of Part
         '''
 
@@ -207,20 +202,20 @@ class DynaModel:
         self.partsInfo[pid] = Part(header, secid, mid, eosid, hgid, grav, adpopt, timid)
 
 
-    def __KEYWORD(self, kline: KLine):
+    def __KEYWORD__(self, kline: KLine):
         pass
 
 
-    def __END(self, kline: KLine):
+    def __END__(self, kline: KLine):
         pass
 
 
-    __modesDict = {
-        KEYWORD.ELEMENT_SHELL: __ELEMENT_SHELL,
-        KEYWORD.END: __END,
-        KEYWORD.KEYWORD: __KEYWORD,
-        KEYWORD.NODE: __NODE,
-        KEYWORD.PART: __PART,
+    _modesDict = {
+        KEYWORD.ELEMENT_SHELL: __ELEMENT_SHELL__,
+        KEYWORD.END: __END__,
+        KEYWORD.KEYWORD: __KEYWORD__,
+        KEYWORD.NODE: __NODE__,
+        KEYWORD.PART: __PART__,
     }
 
 
