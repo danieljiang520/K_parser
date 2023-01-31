@@ -3,10 +3,8 @@
 # -----------------------------------------------------------
 
 # %% standard lib imports
-import argparse, pathlib
 from collections import defaultdict
-from enum import Enum
-from sys import stderr
+import re, argparse
 from typing import Union, Tuple
 
 # %% first party imports
@@ -14,6 +12,8 @@ from utils import *
 
 #===================================================================================================
 # KLine Class
+pattern = re.compile(r'(["\']).*?\1(?<!\\["\'])|[^\r\n\t\f ,]+')
+
 class KLine:
     ''' Lexer for the parser
     Reference: https://supunsetunga.medium.com/writing-a-parser-getting-started-44ba70bb6cc9
@@ -26,7 +26,10 @@ class KLine:
     '''
 
     def __init__(self, line: str, currKeyword: KEYWORD) -> None:
-        line = line.split()
+        ''' Initialize KLine
+        '''
+
+        line = re.findall(r'[^,\s]+', line)
         firstItem = line[0]
 
         # Comment or empty line (technically empty line is invalid in a k file, but we will allow it)
@@ -56,7 +59,7 @@ class DynaModel:
     '''
 
     def __init__(self, args: Union[list[str],  str]) -> None:
-        '''
+        ''' Initialize DynaModel
         '''
         self.elementShellDict = defaultdict(list[int]) # {eid1: [nid1, nid2, nid3, nid4]}
         self.nodes = []
@@ -84,7 +87,7 @@ class DynaModel:
 
 
     def __readFile__(self, filename: str) -> None:
-        '''
+        ''' Read a k file
         '''
 
         # Keyword mode
@@ -123,7 +126,7 @@ class DynaModel:
 
 
     def __NODE__(self, kline: KLine) -> None:
-        '''
+        ''' Parse NODE line
         '''
 
         # Error Handling
@@ -148,7 +151,7 @@ class DynaModel:
 
 
     def __ELEMENT_SHELL__(self, kline: KLine) -> None:
-        '''
+        ''' Parse ELEMENT_SHELL line
         '''
 
         # Error Handling
