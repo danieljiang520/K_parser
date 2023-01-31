@@ -29,7 +29,14 @@ class KLine:
         ''' Initialize KLine
         '''
 
+        # split line by space, comma, and fixed-width whitespace (multiple spaces are treated as one space).
         line = re.findall(r'[^,\s]+', line)
+
+        # Empty line
+        if len(line) == 0:
+            self.is_valid = False
+            return
+
         firstItem = line[0]
 
         # Comment or empty line (technically empty line is invalid in a k file, but we will allow it)
@@ -107,7 +114,7 @@ class DynaModel:
                 elif kline.is_keyword:
                     # Execute part
                     # NOTE: PART has multiple lines of data, therefore we record all the lines and
-                    # process them at the end of the KEYWORD section
+                    # process them at the end of the section
                     if currMode is KEYWORD.PART:
                         self._modesDict[currMode](self, partlist)
                         partlist.clear()

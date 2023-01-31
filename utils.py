@@ -45,7 +45,7 @@ def eprint(*args, **kwargs):
 def is_list_of_strings(lst):
     ''' Check if the list is a list of strings
     '''
-    return isinstance(lst, list) and all(isinstance(elem, str) for elem in lst)
+    return isinstance(lst, list) and all(isinstance(elem, str) or isinstance(elem, Path) for elem in lst)
 
 
 def getAllKFilesInFolder(folderPath: str) -> list[str]:
