@@ -19,10 +19,11 @@ class KEYWORD(Enum):
     '''
     UNKNOWN = 1
     ELEMENT_SHELL = 2
-    END = 3
-    KEYWORD = 4
-    NODE = 5
-    PART = 6
+    ELEMENT_SOLID = 3
+    END = 4
+    KEYWORD = 5
+    NODE = 6
+    PART = 7
 
 #===================================================================================================
 # Type classes

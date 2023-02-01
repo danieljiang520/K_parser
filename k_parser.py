@@ -87,7 +87,7 @@ class DynaModel:
         # self.nodesTree = KDTree(self.nodes)
         print("Finished Reading kfiles!")
         print(f"Total nodes: {len(self.nodesIndDict)}")
-        print(f"Total elements_shells: {len(self.elementShellDict)}")
+        print(f"Total elements: {len(self.elementShellDict)}")
         print(f"Total parts: {len(self.partsDict)}")
 
 
@@ -155,7 +155,7 @@ class DynaModel:
             self.nodes.append(pos)
 
 
-    def __ELEMENT_SHELL__(self, kline: KLine) -> None:
+    def __ELEMENT__(self, kline: KLine) -> None:
         ''' Parse ELEMENT_SHELL line
         '''
 
@@ -177,7 +177,9 @@ class DynaModel:
 
         # Check if id already exists
         if eid in self.elementShellDict:
-            eprint(f"Repeated Element id: {eid}, coord: {nodes}")
+            # NOTE: This is a repeated element, we will skip it (element_solid and element_shell might have the same eid)
+            # eprint(f"Repeated Element id: {eid}, coord: {nodes}")
+            pass
         else:
             self.elementShellDict[eid] = nodes
             self.partsDict[pid].append(eid)
@@ -210,7 +212,8 @@ class DynaModel:
 
 
     _modesDict = {
-        KEYWORD.ELEMENT_SHELL: __ELEMENT_SHELL__,
+        KEYWORD.ELEMENT_SHELL: __ELEMENT__,
+        KEYWORD.ELEMENT_SOLID: __ELEMENT__,
         KEYWORD.END: __END__,
         KEYWORD.KEYWORD: __KEYWORD__,
         KEYWORD.NODE: __NODE__,
