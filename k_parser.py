@@ -12,8 +12,6 @@ from utils import *
 
 #===================================================================================================
 # KLine Class
-pattern = re.compile(r'(["\']).*?\1(?<!\\["\'])|[^\r\n\t\f ,]+')
-
 class KLine:
     ''' Lexer for the parser
     Reference: https://supunsetunga.medium.com/writing-a-parser-getting-started-44ba70bb6cc9
