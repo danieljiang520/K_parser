@@ -18,24 +18,34 @@ class KEYWORD(Enum):
     usage: KEYWORD.name, KEYWORD.value, hashable with string
     '''
     UNKNOWN = 1
-    ELEMENT_SHELL = 2
-    ELEMENT_SOLID = 3
-    END = 4
-    KEYWORD = 5
-    NODE = 6
-    PART = 7
+    ELEMENT = 2
+    END = 3
+    KEYWORD = 4
+    NODE = 5
+    PART = 6
 
 #===================================================================================================
 # Type classes
-class Part(NamedTuple):
-    header: str
-    secid: int
-    mid: int
-    eosid: int
-    hgid: int
-    grav: int
-    adpopt: int
-    timid: int
+class Element():
+    ''' Class for storing the information of an element
+    '''
+    def __init__(self, nodes: list[int]=[], option: list[str]=[]):
+        self.nodes = nodes
+        self.option = option
+
+class Part():
+    ''' Class for storing the information of a part
+    '''
+    def __init__(self,  elements: list[int]=[], header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, timid: int=0):
+        self.elements = elements
+        self.header = header
+        self.secid = secid
+        self.mid = mid
+        self.eosid = eosid
+        self.hgid = hgid
+        self.grav = grav
+        self.adpopt = adpopt
+        self.timid = timid
 
 #===================================================================================================
 # Helper functions

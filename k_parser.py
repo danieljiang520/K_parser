@@ -20,6 +20,7 @@ class KLine:
         is_keyword: bool
         is_valid: bool
         keyword: KEYWORD
+        keyword_args: list[str]
         values: list
     '''
 
@@ -43,11 +44,17 @@ class KLine:
 
         # Keyword line
         elif firstItem[0] == '*':
-            keyword = firstItem[1:]
+            temp = firstItem[1:].split('_')
+            keyword = temp[0].upper()
+            keyword_args = temp[1:]
             self.is_valid = True
             self.is_keyword = True
             # if keyword is not defined, set keyword to UNKNOWN; otherwise, set keyword
-            self.keyword = KEYWORD[firstItem[1:]] if keyword in KEYWORD._member_names_ else KEYWORD.UNKNOWN
+            if keyword in KEYWORD._member_names_:
+                self.keyword = KEYWORD[keyword]
+                self.keyword_args = keyword_args
+            else:
+                self.keyword = KEYWORD.UNKNOWN
 
         # Everything else
         else:
@@ -66,11 +73,11 @@ class DynaModel:
     def __init__(self, args: Union[list[str],  str]) -> None:
         ''' Initialize DynaModel
         '''
-        self.elementShellDict = defaultdict(list[int]) # {eid1: [nid1, nid2, nid3, nid4]}
         self.nodes = []
         self.nodesIndDict = defaultdict(int)
-        self.partsDict = defaultdict(list[int]) # {pid: [eid, eid, eid]}
-        self.partsInfo = defaultdict(Part)
+        self.elementDict = defaultdict(list[int]) # {eid1: [nid1, nid2, nid3, nid4]}
+        self.partsDict = defaultdict(Part) # {pid: [eid, eid, eid]}
+        # self.partsInfo = defaultdict(Part)
 
 
         if is_list_of_strings(args):
@@ -87,7 +94,7 @@ class DynaModel:
         # self.nodesTree = KDTree(self.nodes)
         print("Finished Reading kfiles!")
         print(f"Total nodes: {len(self.nodesIndDict)}")
-        print(f"Total elements: {len(self.elementShellDict)}")
+        print(f"Total elements: {len(self.elementDict)}")
         print(f"Total parts: {len(self.partsDict)}")
 
 
@@ -176,13 +183,13 @@ class DynaModel:
         nodes = [n for n in kline.values[2:] if n > 0]
 
         # Check if id already exists
-        if eid in self.elementShellDict:
+        if eid in self.elementDict:
             # NOTE: This is a repeated element, we will skip it (element_solid and element_shell might have the same eid)
             # eprint(f"Repeated Element id: {eid}, coord: {nodes}")
             pass
         else:
-            self.elementShellDict[eid] = nodes
-            self.partsDict[pid].append(eid)
+            self.elementDict[eid] = nodes
+            self.partsDict[pid].elements.append(eid)
 
 
     def __PART__(self, klineList: list[KLine]) -> None:
@@ -200,7 +207,14 @@ class DynaModel:
             return
 
         pid, secid, mid, eosid, hgid, grav, adpopt, timid = [int(i) for i in klineList[1].values]
-        self.partsInfo[pid] = Part(header, secid, mid, eosid, hgid, grav, adpopt, timid)
+        self.partsDict[pid].header = header
+        self.partsDict[pid].secid = secid
+        self.partsDict[pid].mid = mid
+        self.partsDict[pid].eosid = eosid
+        self.partsDict[pid].hgid = hgid
+        self.partsDict[pid].grav = grav
+        self.partsDict[pid].adpopt = adpopt
+        self.partsDict[pid].timid = timid
 
 
     def __KEYWORD__(self, kline: KLine):
@@ -212,8 +226,7 @@ class DynaModel:
 
 
     _modesDict = {
-        KEYWORD.ELEMENT_SHELL: __ELEMENT__,
-        KEYWORD.ELEMENT_SOLID: __ELEMENT__,
+        KEYWORD.ELEMENT: __ELEMENT__,
         KEYWORD.END: __END__,
         KEYWORD.KEYWORD: __KEYWORD__,
         KEYWORD.NODE: __NODE__,
@@ -249,11 +262,11 @@ class DynaModel:
             1 = indices of the corresponding nodes in self.nodes (better compatibility with vedo's
             mesh constructor)
         '''
-        if eid not in self.elementShellDict:
+        if eid not in self.elementDict:
             eprint(f"Element_Shell id: {eid} not in elementShellDict")
             return []
 
-        nodeIds = self.elementShellDict[eid]
+        nodeIds = self.elementDict[eid]
 
         # NOTE: match requires python 3.10+
         match outputType:
@@ -280,7 +293,7 @@ class DynaModel:
             eprint(f"Part id: {pid} not in partsDict")
             return []
 
-        elementShellIds = self.partsDict[pid]
+        elementShellIds = self.partsDict[pid].elements
         match outputType:
             case 0:
                 return [self.getElementShell(eid) for eid in elementShellIds]
@@ -289,7 +302,7 @@ class DynaModel:
                 faces = []
                 # Append each element (in terms of its nodes' indices) to faces
                 for eid in elementShellIds:
-                    nodeIds = self.elementShellDict[eid]
+                    nodeIds = self.elementDict[eid]
                     faces.append([self.nodesIndDict[nid] for nid in nodeIds])
                 return faces
 
@@ -332,8 +345,10 @@ if __name__ == "__main__":
     """
 
     from vedo import mesh
+    print("Getting nodes...")
     verts = k_parser.getAllNodes()
     # faces = k_parser.getPart(pid=20003, outputType=1)
+    print("Getting parts...")
     faces = k_parser.getAllPart()
     print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()
