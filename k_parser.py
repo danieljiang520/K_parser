@@ -297,7 +297,7 @@ class DynaModel:
                 return None
 
 
-    def getAllPart(self):
+    def getAllParts(self):
         faces = []
         for pid in self.partsDict:
             faces.extend(self.getPart(pid, 1))
@@ -334,7 +334,7 @@ if __name__ == "__main__":
     from vedo import mesh
     verts = k_parser.getAllNodes()
     # faces = k_parser.getPart(pid=20003, outputType=1)
-    faces = k_parser.getAllPart()
+    faces = k_parser.getAllParts()
     print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()
 

@@ -93,7 +93,7 @@ k_parser.getPart(10003)
 ```
 <img width="859" alt="Screen Shot 2022-10-20 at 09 32 29" src="https://user-images.githubusercontent.com/71047773/196962773-27be71fe-6f92-4848-9bf9-4dc77406dde0.png">
 
-### getAllPart
+### getAllParts
 Get all parts
 
 <img width="859" alt="Screen Shot 2022-10-20 at 09 35 35" src="https://user-images.githubusercontent.com/71047773/196963449-29b726a8-bc85-4166-af22-5683e831073f.png">
