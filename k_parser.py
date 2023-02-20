@@ -255,14 +255,12 @@ class DynaModel:
 
         nodeIds = self.elementShellDict[eid]
 
-        # NOTE: match requires python 3.10+
-        match outputType:
-            case 0:
-                return self.getNodes(nodeIds)
-            case 1:
-                return [self.nodesIndDict[nid] for nid in nodeIds]
-            case _:
-                return None
+        if outputType == 0:
+            return self.getNodes(nodeIds)
+        elif outputType == 1:
+            return [self.nodesIndDict[nid] for nid in nodeIds]
+        else :
+            return None
 
 
     def getPart(self, pid: int, outputType: int=0) -> Union[list[list[Tuple[float]]], list[list[int]]]:
@@ -281,20 +279,19 @@ class DynaModel:
             return []
 
         elementShellIds = self.partsDict[pid]
-        match outputType:
-            case 0:
-                return [self.getElementShell(eid) for eid in elementShellIds]
+        if outputType == 0:
+            return [self.getElementShell(eid) for eid in elementShellIds]
 
-            case 1:
-                faces = []
-                # Append each element (in terms of its nodes' indices) to faces
-                for eid in elementShellIds:
-                    nodeIds = self.elementShellDict[eid]
-                    faces.append([self.nodesIndDict[nid] for nid in nodeIds])
-                return faces
+        elif outputType == 1:
+            faces = []
+            # Append each element (in terms of its nodes' indices) to faces
+            for eid in elementShellIds:
+                nodeIds = self.elementShellDict[eid]
+                faces.append([self.nodesIndDict[nid] for nid in nodeIds])
+            return faces
 
-            case _:
-                return None
+        else:
+            return None
 
 
     def getAllParts(self):
