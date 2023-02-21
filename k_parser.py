@@ -185,7 +185,7 @@ class DynaModel:
 
         eid = kline.values[0]
         pid = kline.values[1]
-        nodes = [self.nodesDict[nid] for nid in kline.values[2:10] if nid != 0 and nid in self.nodesDict]
+        nodes = [nid for nid in kline.values[2:10] if nid != 0]
 
         # Check if id already exists
         if eid in self.elementDict:
@@ -278,7 +278,7 @@ class DynaModel:
         element = self.elementDict[eid]
 
         if outputType == 0:
-            return element.getNodesCoord()
+            return [self.nodesDict[nid].getCoord() for nid in element.nodes]
 
         # elif outputType == 1:
         #     return [self.nodesDict[nid] for nid in nodeIds]

@@ -52,24 +52,21 @@ class Node():
 class Element():
     ''' Class for storing the information of an element
     '''
-    def __init__(self, nodes: list[Node], lineNum: int=-1):
-        self.nodes = nodes
+    def __init__(self, nids: list[int], lineNum: int=-1):
+        self.nodes = nids
         self.lineNum = lineNum
-        self._coord = None
 
-    def getNodesCoord(self):
-        ''' Return a list of the coordinates of the nodes
-        '''
-        # if self._coord is not None:
-        #     return self._coord
+    def __str__(self) -> str:
+        return f"Element({self.nodes})"
 
-        return [node.getCoord() for node in self.nodes]
+        
 class Part():
     ''' Class for storing the information of a part
     '''
     def __init__(self,  elements: list[Element]=[], lineNum: int=-1, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, timid: int=0):
         self.elements = elements
         self.lineNum = lineNum
+
         self.header = header
         self.secid = secid
         self.mid = mid
