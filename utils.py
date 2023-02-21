@@ -33,10 +33,10 @@ class Node():
     def __init__(self, plist, lineNum: int=-1):
         self.lineNum = lineNum
 
-        if is_sequence(plist):  # passing point coords
-            self.coord = make3d(plist)
-        elif isinstance(plist, Node):  # passing a node
+        if isinstance(plist, Node):  # passing a node
             self.coord = copy.deepcopy(plist.coord)
+        elif is_sequence(plist):  # passing a list
+            self.coord = plist
         else:
             raise ValueError("Invalid input type for Node")
 
@@ -45,6 +45,9 @@ class Node():
         '''
         return self.coord
 
+    def __str__(self) -> str:
+        return f"Node({self.coord})"
+
 
 class Element():
     ''' Class for storing the information of an element
@@ -52,18 +55,15 @@ class Element():
     def __init__(self, nodes: list[Node], lineNum: int=-1):
         self.nodes = nodes
         self.lineNum = lineNum
-
         self._coord = None
 
     def getNodesCoord(self):
         ''' Return a list of the coordinates of the nodes
         '''
-        if self._coord is not None:
-            return self._coord
+        # if self._coord is not None:
+        #     return self._coord
 
-        self._coord = [node.getCoord() for node in self.nodes]
-        return self._coord
-
+        return [node.getCoord() for node in self.nodes]
 class Part():
     ''' Class for storing the information of a part
     '''
@@ -88,9 +88,9 @@ class Part():
         if self._verts is not None:
             return self._verts
 
-        self.__updateVertsAndFaces()
+        # self.__updateVertsAndFaces()
 
-        return self._verts
+        return np.concatenate([elem.getNodesCoord() for elem in self.elements])
 
     def getFaces(self):
         ''' Return a list of the references of the nodes
@@ -98,8 +98,8 @@ class Part():
         if self._faces is not None:
             return self._faces
 
-        self.__updateVertsAndFaces()
-        return self._faces
+        # self.__updateVertsAndFaces()
+        return [np.arange(len(elem.nodes), dtype=int) for elem in self.elements]
 
     def __updateVertsAndFaces(self):
         ''' Update the verts and faces

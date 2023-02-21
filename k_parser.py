@@ -105,7 +105,7 @@ class DynaModel:
 
         # Keyword mode
         currKeyword = KLine()
-        partlist = []
+        partList = []
 
         with open(filename) as reader:
             # Read the entire file line by line
@@ -122,8 +122,8 @@ class DynaModel:
                     # NOTE: PART has multiple lines of data, therefore we record all the lines and
                     # process them at the end of the section
                     if currKeyword.keyword is KEYWORD.PART:
-                        self._modesDict[currKeyword.keyword](self, partlist, currKeyword.keyword_args)
-                        partlist.clear()
+                        self._modesDict[currKeyword.keyword](self, partList, currKeyword.keyword_args)
+                        partList.clear()
 
                     # Update mode
                     currKeyword = kline
@@ -132,7 +132,7 @@ class DynaModel:
                 elif kline.keyword in self._modesDict:
                     # if keyword is PART, Add kline to partlist
                     if kline.keyword is KEYWORD.PART:
-                        partlist.append(kline)
+                        partList.append(kline)
                     # Execute line
                     else:
                         self._modesDict[kline.keyword](self, kline, currKeyword.keyword_args)
@@ -172,6 +172,10 @@ class DynaModel:
             eprint(f"Invalid {kline.keyword.name}: too less arguments; args: {kline.values}")
             return
 
+        if keyword_args[0] != 'SHELL':
+            # Discrete element
+            return
+
         try:
             kline.values = [int(n) for n in kline.values]
         except ValueError:
@@ -181,7 +185,7 @@ class DynaModel:
 
         eid = kline.values[0]
         pid = kline.values[1]
-        nodes = [self.nodesDict[n] for n in kline.values[2:] if n > 0 and n in self.nodesDict]
+        nodes = [self.nodesDict[nid] for nid in kline.values[2:10] if nid != 0 and nid in self.nodesDict]
 
         # Check if id already exists
         if eid in self.elementDict:
@@ -246,10 +250,10 @@ class DynaModel:
         if nid not in self.nodesDict:
             eprint(f"Node id: {nid} not in nodesIndDict")
             return None
-        return self.nodesDict[nid].getCoord()
+        return self.nodesDict[nid]
 
 
-    def getNodes(self, nids: list[int]=[]):
+    def getNodesCoord(self, nids: list[int]=[]):
         ''' Return a list of nodes' coordinates given a list of IDs
         '''
         return [self.nodesDict[nid].getCoord() for nid in nids]
@@ -275,6 +279,7 @@ class DynaModel:
 
         if outputType == 0:
             return element.getNodesCoord()
+
         # elif outputType == 1:
         #     return [self.nodesDict[nid] for nid in nodeIds]
         else :
@@ -342,17 +347,17 @@ if __name__ == "__main__":
     """
 
     from vedo import mesh
+    print("starting...")
     # nodes = k_parser.getAllNodes()
-    verts, faces = k_parser.getPart(pid=20003)
+    # verts, faces = k_parser.getPart(pid=20003)
     # verts, faces = k_parser.getAllParts()
-    print("Displaying object with vedo...")
-    verts = np.array(verts)
-    faces = np.array(faces)
-
-    print(verts.shape)
-    print(faces.shape)
-    m = mesh.Mesh([verts, faces]).show()
-
-    # k_parser.getNodes([100000,100001])
-    # k_parser.getElementShell(100005)
+    coord = k_parser.getNodesCoord([100000,100001])
+    # coord = k_parser.getNode(100000)
+    verts = k_parser.getElement(100005)
     # k_parser.getPart(20003)
+
+    print("Displaying object with vedo...")
+    print(coord)
+    print(verts)
+    # m = mesh.Mesh(verts).show()
+
