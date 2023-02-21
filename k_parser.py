@@ -24,7 +24,7 @@ class KLine:
         values: list
     '''
 
-    def __init__(self, line: str, currKeyword: KEYWORD, lineNum: int) -> None:
+    def __init__(self, line: str='*KEYWORD', currKeyword: KEYWORD=KEYWORD.KEYWORD, lineNum: int=-1) -> None:
         ''' Initialize KLine
         '''
 
@@ -104,13 +104,13 @@ class DynaModel:
         '''
 
         # Keyword mode
-        currMode = KEYWORD.KEYWORD
+        currKeyword = KLine()
         partlist = []
 
         with open(filename) as reader:
             # Read the entire file line by line
             for i, line in enumerate(reader):
-                kline = KLine(line, currMode, i)
+                kline = KLine(line, currKeyword.keyword, i)
 
                 # Skip comment or empty line
                 if not kline.is_valid:
@@ -121,12 +121,12 @@ class DynaModel:
                     # Execute part
                     # NOTE: PART has multiple lines of data, therefore we record all the lines and
                     # process them at the end of the section
-                    if currMode is KEYWORD.PART:
-                        self._modesDict[currMode](self, partlist)
+                    if currKeyword.keyword is KEYWORD.PART:
+                        self._modesDict[currKeyword.keyword](self, partlist, currKeyword.keyword_args)
                         partlist.clear()
 
                     # Update mode
-                    currMode = kline.keyword
+                    currKeyword = kline
 
                 # Data line
                 elif kline.keyword in self._modesDict:
@@ -135,10 +135,10 @@ class DynaModel:
                         partlist.append(kline)
                     # Execute line
                     else:
-                        self._modesDict[kline.keyword](self, kline)
+                        self._modesDict[kline.keyword](self, kline, currKeyword.keyword_args)
 
 
-    def __NODE__(self, kline: KLine) -> None:
+    def __NODE__(self, kline: KLine, keyword_args: list[str]) -> None:
         ''' Parse NODE line
         '''
 
@@ -163,7 +163,7 @@ class DynaModel:
             self.nodesDict[id] = Node(coord, kline.lineNum)
 
 
-    def __ELEMENT__(self, kline: KLine) -> None:
+    def __ELEMENT__(self, kline: KLine, keyword_args) -> None:
         ''' Parse ELEMENT_SHELL line
         '''
 
@@ -176,12 +176,12 @@ class DynaModel:
             kline.values = [int(n) for n in kline.values]
         except ValueError:
             # Check if the types are correct
-            eprint(f"Invalid {kline.keyword.name}: bad type; args: {kline.values}")
+            eprint(f"Invalid {kline.keyword.name}: bad type; args: {keyword_args}")
             return
 
         eid = kline.values[0]
         pid = kline.values[1]
-        nodes = [self.nodesDict[n] for n in kline.values[2:] if n > 0]
+        nodes = [self.nodesDict[n] for n in kline.values[2:] if n > 0 and n in self.nodesDict]
 
         # Check if id already exists
         if eid in self.elementDict:
@@ -194,7 +194,7 @@ class DynaModel:
             self.partsDict[pid].elements.append(element)
 
 
-    def __PART__(self, klineList: list[KLine]) -> None:
+    def __PART__(self, klineList: list[KLine], keyword_args) -> None:
         ''' NOTE: Only reading the basic information of Part
         '''
 
@@ -343,14 +343,14 @@ if __name__ == "__main__":
 
     from vedo import mesh
     # nodes = k_parser.getAllNodes()
-    # faces = k_parser.getPart(pid=20003, outputType=1)
-    verts, faces = k_parser.getAllParts()
+    verts, faces = k_parser.getPart(pid=20003)
+    # verts, faces = k_parser.getAllParts()
     print("Displaying object with vedo...")
     verts = np.array(verts)
     faces = np.array(faces)
+
     print(verts.shape)
     print(faces.shape)
-    print(faces[-1])
     m = mesh.Mesh([verts, faces]).show()
 
     # k_parser.getNodes([100000,100001])
