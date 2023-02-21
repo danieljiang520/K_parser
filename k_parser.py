@@ -24,7 +24,7 @@ class KLine:
         values: list
     '''
 
-    def __init__(self, line: str, currKeyword: KEYWORD) -> None:
+    def __init__(self, line: str, currKeyword: KEYWORD, lineNum: int) -> None:
         ''' Initialize KLine
         '''
 
@@ -63,6 +63,8 @@ class KLine:
             self.keyword = currKeyword
             self.values = line
 
+        self.lineNum = lineNum
+
 
 #===================================================================================================
 # Dyna Model Definition
@@ -73,10 +75,9 @@ class DynaModel:
     def __init__(self, args: Union[list[str],  str]) -> None:
         ''' Initialize DynaModel
         '''
-        self.nodes = []
-        self.nodesIndDict = defaultdict(int)
-        self.elementDict = defaultdict(list[int]) # {eid1: [nid1, nid2, nid3, nid4]}
-        self.partsDict = defaultdict(Part) # {pid: [eid, eid, eid]}
+        self.nodesDict = defaultdict(Node)
+        self.elementDict = defaultdict(Element)
+        self.partsDict = defaultdict(Part)
         # self.partsInfo = defaultdict(Part)
 
 
@@ -93,7 +94,7 @@ class DynaModel:
 
         # self.nodesTree = KDTree(self.nodes)
         print("Finished Reading kfiles!")
-        print(f"Total nodes: {len(self.nodesIndDict)}")
+        print(f"Total nodes: {len(self.nodesDict)}")
         print(f"Total elements: {len(self.elementDict)}")
         print(f"Total parts: {len(self.partsDict)}")
 
@@ -108,8 +109,8 @@ class DynaModel:
 
         with open(filename) as reader:
             # Read the entire file line by line
-            for line in reader:
-                kline = KLine(line, currMode)
+            for i, line in enumerate(reader):
+                kline = KLine(line, currMode, i)
 
                 # Skip comment or empty line
                 if not kline.is_valid:
@@ -146,20 +147,20 @@ class DynaModel:
             eprint(f"Invalid {kline.keyword.name}: too less arguments; args: {kline.values}")
             return
 
+        # NOTE: might not need to use and try and except block since make3d will check for this
         try:
             id = int(kline.values[0])
-            pos = (float(kline.values[1]), float(kline.values[2]), float(kline.values[3]))
+            coord = (float(kline.values[1]), float(kline.values[2]), float(kline.values[3]))
         except ValueError:
             # Check if the types of id and pos are correct
             eprint(f"Invalid {kline.keyword.name}: bad type; args: {kline.values}")
             return
 
         # Check if id already exists
-        if id in self.nodesIndDict:
-            eprint(f"Invalid {kline.keyword.name}: Repeated node; id: {id}, coord: {pos}")
+        if id in self.nodesDict:
+            eprint(f"Invalid {kline.keyword.name}: Repeated node; id: {id}, coord: {coord}")
         else:
-            self.nodesIndDict[id] = len(self.nodes)
-            self.nodes.append(pos)
+            self.nodesDict[id] = Node(coord, kline.lineNum)
 
 
     def __ELEMENT__(self, kline: KLine) -> None:
@@ -180,7 +181,7 @@ class DynaModel:
 
         eid = kline.values[0]
         pid = kline.values[1]
-        nodes = [n for n in kline.values[2:] if n > 0]
+        nodes = [self.nodesDict[n] for n in kline.values[2:] if n > 0]
 
         # Check if id already exists
         if eid in self.elementDict:
@@ -188,8 +189,9 @@ class DynaModel:
             # eprint(f"Repeated Element id: {eid}, coord: {nodes}")
             pass
         else:
-            self.elementDict[eid] = nodes
-            self.partsDict[pid].elements.append(eid)
+            element = Element(nodes, kline.lineNum)
+            self.elementDict[eid] = element
+            self.partsDict[pid].elements.append(element)
 
 
     def __PART__(self, klineList: list[KLine]) -> None:
@@ -207,6 +209,7 @@ class DynaModel:
             return
 
         pid, secid, mid, eosid, hgid, grav, adpopt, timid = [int(i) for i in klineList[1].values]
+        self.partsDict[pid].lineNum = klineList[0].lineNum
         self.partsDict[pid].header = header
         self.partsDict[pid].secid = secid
         self.partsDict[pid].mid = mid
@@ -237,25 +240,27 @@ class DynaModel:
 #---------------------------------------------------------------------------------------------------
 # Public methods
 
-    def getNode(self, nid: int) -> Tuple[float]:
+    def getNode(self, nid: int):
+        ''' Return the node's coordinates given its ID
         '''
-        '''
-        if nid not in self.nodesIndDict:
+        if nid not in self.nodesDict:
             eprint(f"Node id: {nid} not in nodesIndDict")
-            return () # empty tuple
-        return self.nodes[self.nodesIndDict[nid]]
+            return None
+        return self.nodesDict[nid].getCoord()
 
 
-    def getNodes(self, nids: list[int]=[]) -> list[Tuple[float]]:
-        return [self.getNode(nid) for nid in nids]
+    def getNodes(self, nids: list[int]=[]):
+        ''' Return a list of nodes' coordinates given a list of IDs
+        '''
+        return [self.nodesDict[nid].getCoord() for nid in nids]
 
 
-    def getAllNodes(self) -> list[Tuple[float]]:
-        return self.nodes
+    def getAllNodes(self):
+        return [node.getCoord() for node in self.nodesDict]
 
 
-    def getElementShell(self, eid: int, outputType: int=0) -> Union[list[Tuple[float]], list[int]]:
-        ''' Return the ELEMENT_SHELL given its ID
+    def getElement(self, eid: int, outputType: int=0):
+        ''' Return the ELEMENT given its ID
 
         Use outputType as:
             0 = list of coordinates of the corresponding nodes
@@ -264,14 +269,14 @@ class DynaModel:
         '''
         if eid not in self.elementDict:
             eprint(f"Element_Shell id: {eid} not in elementShellDict")
-            return []
+            return None
 
-        nodeIds = self.elementDict[eid]
+        element = self.elementDict[eid]
 
         if outputType == 0:
-            return self.getNodes(nodeIds)
-        elif outputType == 1:
-            return [self.nodesIndDict[nid] for nid in nodeIds]
+            return element.getNodesCoord()
+        # elif outputType == 1:
+        #     return [self.nodesDict[nid] for nid in nodeIds]
         else :
             return None
 
@@ -289,29 +294,24 @@ class DynaModel:
         '''
         if pid not in self.partsDict:
             eprint(f"Part id: {pid} not in partsDict")
-            return []
+            return None
 
-        elementShellIds = self.partsDict[pid]
+        part = self.partsDict[pid]
         if outputType == 0:
-            return [self.getElementShell(eid) for eid in elementShellIds]
-
-        elif outputType == 1:
-            faces = []
-            # Append each element (in terms of its nodes' indices) to faces
-            for eid in elementShellIds:
-                nodeIds = self.elementShellDict[eid]
-                faces.append([self.nodesIndDict[nid] for nid in nodeIds])
-            return faces
+            return part.getVerts(), part.getFaces()
 
         else:
             return None
 
 
     def getAllParts(self):
+        verts = []
         faces = []
         for pid in self.partsDict:
-            faces.extend(self.getPart(pid, 1))
-        return faces
+            data = self.getPart(pid)
+            verts.extend(data[0])
+            faces.extend(np.array(data[1]) + len(verts))
+        return verts, faces
 
 
 
@@ -342,12 +342,15 @@ if __name__ == "__main__":
     """
 
     from vedo import mesh
-    print("Getting nodes...")
-    verts = k_parser.getAllNodes()
+    # nodes = k_parser.getAllNodes()
     # faces = k_parser.getPart(pid=20003, outputType=1)
-    print("Getting parts...")
-    faces = k_parser.getAllPart()
+    verts, faces = k_parser.getAllParts()
     print("Displaying object with vedo...")
+    verts = np.array(verts)
+    faces = np.array(faces)
+    print(verts.shape)
+    print(faces.shape)
+    print(faces[-1])
     m = mesh.Mesh([verts, faces]).show()
 
     # k_parser.getNodes([100000,100001])
