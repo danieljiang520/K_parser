@@ -29,6 +29,9 @@ class KEYWORD_TYPE(Enum):
 
 class ELEMENT_TYPE(Enum):
     ''' Enumerations for different types of ELEMENT
+    NOTE: Alphabetically sorted, and the parser only support the following keywords
+          Different types of elements have different number of nodes
+    usage: ELEMENT_TYPE.name, ELEMENT_TYPE.value, hashable with string
     '''
     UNKNOWN = 1
     BEAM = 2
@@ -65,8 +68,16 @@ class Element():
     ''' Class for storing the information of an element
     '''
     def __init__(self, nids: list[int]=[], type=ELEMENT_TYPE.UNKNOWN, lineNum: int=-1):
-        self.nodes = set(nids)
 
+        # nodes
+        if isinstance(nids, list):
+            self.nodes = set(nids)
+        elif isinstance(nids, set):
+            self.nodes = nids
+        else:
+            raise ValueError("Invalid input type for Element")
+
+        # types
         self.types = []
         if isinstance(type, ELEMENT_TYPE):
             self.addType(type)
@@ -77,10 +88,11 @@ class Element():
         else:
             raise ValueError("Invalid input type for Element")
 
+        # line number
         self.lineNum = lineNum
 
     def __str__(self) -> str:
-        return f"Element({self.nodes})"
+        return f"Element_{self.types}({self.nodes})"
 
     def addType(self, type: Union[ELEMENT_TYPE, str]):
         ''' Add a type to the element

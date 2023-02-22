@@ -376,7 +376,7 @@ if __name__ == "__main__":
     # k_parser.getPart(20003)
 
     print(len(verts))
-    print(faces[-1])
+    print(len(faces))
 
     print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()
