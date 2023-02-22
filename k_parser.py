@@ -78,21 +78,16 @@ class DynaModel:
         self.nodesDict = defaultdict(Node)
         self.elementDict = defaultdict(Element)
         self.partsDict = defaultdict(Part)
-        # self.partsInfo = defaultdict(Part)
-
 
         if is_list_of_strings(args):
             for filename in args:
                 self.__readFile__(filename)
-
         elif isinstance(args, str):
             self.__readFile__(args)
-
         else:
             eprint("unknown argument: ", args)
             return
 
-        # self.nodesTree = KDTree(self.nodes)
         print("Finished Reading kfiles!")
         print(f"Total nodes: {len(self.nodesDict)}")
         print(f"Total elements: {len(self.elementDict)}")
@@ -329,7 +324,7 @@ class DynaModel:
         return self.partsDict[pid]
 
 
-    def getPartData(self, part: Union[int, Part], outputType: int=0, faceStart: int=0) -> Union[list[list[Tuple[float]]], list[list[int]]]:
+    def getPartData(self, part: Union[int, Part], outputType: int=0) -> Union[list[list[Tuple[float]]], list[list[int]]]:
         ''' Return the PART given its ID
 
         Use outputType as:
@@ -350,8 +345,11 @@ class DynaModel:
             verts = []
             faces = []
             for element in part.elements:
-                faces.append([i for i in range(len(verts) + faceStart, len(verts) + len(element.nodes) + faceStart)])
-                verts.extend(self.getElementCoord(element, outputType=0))
+                coord = self.getElementCoord(element)
+                if coord is not None:
+                    faceBegin = len(verts)
+                    faces.append(list(range(faceBegin, faceBegin + len(coord))))
+                    verts.extend(coord)
             return verts, faces
         else:
             return None
@@ -360,11 +358,15 @@ class DynaModel:
     def getAllPartsData(self):
         verts = []
         faces = []
-        for part in self.partsDict:
-            data = self.getPartData(part, faceStart=len(verts))
-            if data is not None:
-                verts.extend(data[0])
-                faces.extend(data[1])
+
+        elements = set(eid for part in self.partsDict.values() for eid in part.elements)
+
+        for element in elements:
+            coord = self.getElementCoord(element)
+            if coord is not None:
+                faceBegin = len(verts)
+                faces.append(list(range(faceBegin, faceBegin + len(coord))))
+                verts.extend(coord)
         return verts, faces
 
 
