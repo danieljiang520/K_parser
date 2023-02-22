@@ -46,7 +46,6 @@ class Node():
     ''' Class for storing the information of a node
     '''
     def __init__(self, plist=(0, 0, 0), lineNum: int=-1):
-        self.lineNum = lineNum
 
         if isinstance(plist, Node):  # passing a node
             self.coord = copy.deepcopy(plist.coord)
@@ -54,6 +53,8 @@ class Node():
             self.coord = plist
         else:
             raise ValueError("Invalid input type for Node")
+
+        self.lineNum = lineNum
 
     def getCoord(self):
         ''' Return the coordinates of the node
@@ -67,13 +68,13 @@ class Node():
 class Element():
     ''' Class for storing the information of an element
     '''
-    def __init__(self, nids: list[int]=[], type=ELEMENT_TYPE.UNKNOWN, lineNum: int=-1):
+    def __init__(self, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, lineNum: int=-1):
 
         # nodes
-        if isinstance(nids, list):
-            self.nodes = set(nids)
-        elif isinstance(nids, set):
-            self.nodes = nids
+        if isinstance(nodes, list):
+            self.nodes = set(nodes)
+        elif isinstance(nodes, set):
+            self.nodes = nodes
         else:
             raise ValueError("Invalid input type for Element")
 
@@ -108,8 +109,8 @@ class Element():
 class Part():
     ''' Class for storing the information of a part
     '''
-    def __init__(self,  eids: list[int]=[], lineNum: int=-1, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, timid: int=0):
-        self.elements = set(eids)
+    def __init__(self,  elements: list[Element]=[], lineNum: int=-1, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, timid: int=0):
+        self.elements = set(elements)
         self.lineNum = lineNum
 
         self.header = header

@@ -158,8 +158,15 @@ class DynaModel:
 
         # Check if id already exists
         if id in self.nodesDict:
-            eprint(f"Invalid {kline.keyword.name}: Repeated node; id: {id}, coord: {coord}")
+            if self.nodesDict[id].lineNum != -1:
+                eprint(f"Invalid {kline.keyword.name}: Repeated node; id: {id}, coord: {coord}")
+                return
+            else:
+                # Update node
+                self.nodesDict[id].coord = coord
+                self.nodesDict[id].lineNum = kline.lineNum
         else:
+            # Add node to dictionary
             self.nodesDict[id] = Node(coord, kline.lineNum)
 
 
@@ -191,20 +198,32 @@ class DynaModel:
         try:
             eid = int(kline.values[0])
             pid = int(kline.values[1])
-            nodes = {nid for nid in map(int, kline.values[2:2+numNodes]) if nid != 0} # 0 is an invalid node id
+
+            nodes = set()
+            for nid in map(int, kline.values[2:2+numNodes]):
+                # 0 is an invalid node id
+                if nid == 0:
+                    continue
+
+                if nid not in self.nodesDict:
+                    # Add node to dictionary
+                    self.nodesDict[nid] = Node()
+                nodes.add(self.nodesDict[nid])
+
         except ValueError:
             # Check if the types are correct
             eprint(f"Invalid {kline.keyword.name}: bad type; args: {kline.values}")
             return
 
-        # Check if id already exists
+        # Add element to dictionary
         if eid in self.elementDict:
-            # NOTE: This is a repeated element, we will skip it (element_solid and element_shell might have the same eid)
-            # eprint(f"Repeated Element id: {eid}, coord: {nodes}")
+            # NOTE: This is a repeated element (element_solid and element_shell might have the same eid)
             self.elementDict[eid].addType(type)
         else:
             self.elementDict[eid] = Element(nodes, type, kline.lineNum)
-            self.partsDict[pid].elements.add(eid)
+
+        # NOTE: an element can be used by multiple parts. Add element to part
+        self.partsDict[pid].elements.add(self.elementDict[eid])
 
 
     def __PART__(self, klineList: list[KLine], keyword_args) -> None:
@@ -272,7 +291,16 @@ class DynaModel:
         return [node.getCoord() for node in self.nodesDict]
 
 
-    def getElement(self, eid: int, outputType: int=0):
+    def getElement(self, eid: Union[int, Element]):
+        ''' Return the ELEMENT given its ID
+        '''
+        if eid not in self.elementDict:
+            eprint(f"Element id: {eid} not in elementShellDict")
+            return None
+        return self.elementDict[eid]
+
+
+    def getElementCoord(self, element: Union[int, Element], outputType: int=0):
         ''' Return the ELEMENT given its ID
 
         Use outputType as:
@@ -280,22 +308,28 @@ class DynaModel:
             1 = indices of the corresponding nodes in self.nodes (better compatibility with vedo's
             mesh constructor)
         '''
-        if eid not in self.elementDict:
-            eprint(f"Element id: {eid} not in elementShellDict")
+        if isinstance(element, int):
+            element = self.getElement(element)
+
+        if not isinstance(element, Element):
             return None
 
-        element = self.elementDict[eid]
-
         if outputType == 0:
-            return [self.nodesDict[nid].getCoord() for nid in element.nodes]
-
-        # elif outputType == 1:
-        #     return [self.nodesDict[nid] for nid in nodeIds]
+            return [node.getCoord() for node in element.nodes]
         else :
             return None
 
 
-    def getPart(self, pid: int, outputType: int=0, faceStart: int=0) -> Union[list[list[Tuple[float]]], list[list[int]]]:
+    def getPart(self, pid: int):
+        ''' Return the PART given its ID
+        '''
+        if pid not in self.partsDict:
+            eprint(f"Part id: {pid} not in partsDict")
+            return None
+        return self.partsDict[pid]
+
+
+    def getPartData(self, part: Union[int, Part], outputType: int=0, faceStart: int=0) -> Union[list[list[Tuple[float]]], list[list[int]]]:
         ''' Return the PART given its ID
 
         Use outputType as:
@@ -306,32 +340,28 @@ class DynaModel:
                 mesh constructor)
                 e.g. [[n1_ind,n2_ind,n3_ind],[n4_ind]]
         '''
-        if pid not in self.partsDict:
-            eprint(f"Part id: {pid} not in partsDict")
+        if isinstance(part, int):
+            part = self.getPart(part)
+
+        if not isinstance(part, Part):
             return None
 
-        part = self.partsDict[pid]
         if outputType == 0:
-
             verts = []
             faces = []
-            for eid in part.elements:
-                element = self.elementDict[eid]
-                if len(element.nodes) == 0:
-                    print(f"Element_{element.types} id: {eid} has no nodes")
+            for element in part.elements:
                 faces.append([i for i in range(len(verts) + faceStart, len(verts) + len(element.nodes) + faceStart)])
-                verts.extend([self.nodesDict[nid].getCoord() for nid in element.nodes])
-
+                verts.extend(self.getElementCoord(element, outputType=0))
             return verts, faces
         else:
             return None
 
 
-    def getAllParts(self):
+    def getAllPartsData(self):
         verts = []
         faces = []
-        for pid in self.partsDict:
-            data = self.getPart(pid, faceStart=len(verts))
+        for part in self.partsDict:
+            data = self.getPartData(part, faceStart=len(verts))
             if data is not None:
                 verts.extend(data[0])
                 faces.extend(data[1])
@@ -369,7 +399,7 @@ if __name__ == "__main__":
     print("starting...")
     # nodes = k_parser.getAllNodes()
     # verts, faces = k_parser.getPart(pid=20003)
-    verts, faces = k_parser.getAllParts()
+    verts, faces = k_parser.getAllPartsData()
     # coord = k_parser.getNodesCoord([100000,100001])
     # coord = k_parser.getNode(100000)
     # verts = k_parser.getElement(100005)
@@ -377,6 +407,9 @@ if __name__ == "__main__":
 
     print(len(verts))
     print(len(faces))
+
+    print(f"verts: {verts[-1]}")
+    print(f"faces: {faces[-1]}")
 
     print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()
