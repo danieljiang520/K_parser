@@ -9,10 +9,11 @@ from enum import Enum
 import numpy as np
 from pathlib import Path
 from sys import stderr
+from typing import Union
 
 #===================================================================================================
 # Enums
-class KEYWORD(Enum):
+class KEYWORD_TYPE(Enum):
     ''' Enumerations for different types of KEYWORD
     NOTE: Alphabetically sorted, and the parser only support the following keywords
 
@@ -25,12 +26,23 @@ class KEYWORD(Enum):
     NODE = 5
     PART = 6
 
+
+class ELEMENT_TYPE(Enum):
+    ''' Enumerations for different types of ELEMENT
+    '''
+    UNKNOWN = 1
+    BEAM = 2
+    DISCRETE = 3
+    SHELL = 4
+    SOLID = 5
+
+
 #===================================================================================================
 # Type classes
 class Node():
     ''' Class for storing the information of a node
     '''
-    def __init__(self, plist, lineNum: int=-1):
+    def __init__(self, plist=(0, 0, 0), lineNum: int=-1):
         self.lineNum = lineNum
 
         if isinstance(plist, Node):  # passing a node
@@ -52,19 +64,40 @@ class Node():
 class Element():
     ''' Class for storing the information of an element
     '''
-    def __init__(self, nids: list[int], lineNum: int=-1):
-        self.nodes = nids
+    def __init__(self, nids: list[int]=[], type=ELEMENT_TYPE.UNKNOWN, lineNum: int=-1):
+        self.nodes = set(nids)
+
+        self.types = []
+        if isinstance(type, ELEMENT_TYPE):
+            self.addType(type)
+        elif isinstance(type, list):
+            self.types = type
+        elif isinstance(type, str):
+            self.addType(type)
+        else:
+            raise ValueError("Invalid input type for Element")
+
         self.lineNum = lineNum
 
     def __str__(self) -> str:
         return f"Element({self.nodes})"
 
-        
+    def addType(self, type: Union[ELEMENT_TYPE, str]):
+        ''' Add a type to the element
+        '''
+        if isinstance(type, ELEMENT_TYPE):
+            self.types.append(type)
+        elif isinstance(type, str) and type in ELEMENT_TYPE.__members__:
+            self.types.append(ELEMENT_TYPE[type])
+        else:
+            raise ValueError("Invalid input for Element.addType")
+
+
 class Part():
     ''' Class for storing the information of a part
     '''
-    def __init__(self,  elements: list[Element]=[], lineNum: int=-1, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, timid: int=0):
-        self.elements = elements
+    def __init__(self,  eids: list[int]=[], lineNum: int=-1, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, timid: int=0):
+        self.elements = set(eids)
         self.lineNum = lineNum
 
         self.header = header
@@ -76,39 +109,8 @@ class Part():
         self.adpopt = adpopt
         self.timid = timid
 
-        self._verts = None
-        self._faces = None
-
-    def getVerts(self):
-        ''' Return a list of the coordinates of the nodes
-        '''
-        if self._verts is not None:
-            return self._verts
-
-        # self.__updateVertsAndFaces()
-
-        return np.concatenate([elem.getNodesCoord() for elem in self.elements])
-
-    def getFaces(self):
-        ''' Return a list of the references of the nodes
-        '''
-        if self._faces is not None:
-            return self._faces
-
-        # self.__updateVertsAndFaces()
-        return [np.arange(len(elem.nodes), dtype=int) for elem in self.elements]
-
-    def __updateVertsAndFaces(self):
-        ''' Update the verts and faces
-        '''
-        self._verts = []
-        self._faces = []
-        for elem in self.elements:
-            self._verts.extend(elem.getNodesCoord())
-            begin = len(self._faces)
-            length = len(elem.nodes)
-            self._faces.append(np.arange(begin, begin+length, dtype=int))
-
+    def __str__(self) -> str:
+        return f"Part({self.elements})"
 
 
 
