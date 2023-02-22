@@ -153,16 +153,18 @@ class DynaModel:
 
         # Check if id already exists
         if id in self.nodesDict:
-            if self.nodesDict[id].lineNum != -1:
+            node = self.nodesDict[id]
+            if node.lineNum != -1:
                 eprint(f"Invalid {kline.keyword.name}: Repeated node; id: {id}, coord: {coord}")
                 return
             else:
                 # Update node
-                self.nodesDict[id].coord = coord
-                self.nodesDict[id].lineNum = kline.lineNum
+                node.coord = coord
+                node.lineNum = kline.lineNum
         else:
             # Add node to dictionary
-            self.nodesDict[id] = Node(coord, kline.lineNum)
+            node = Node(coord, kline.lineNum)
+            self.nodesDict[id] = node
 
 
     def __ELEMENT__(self, kline: KLine, keyword_args) -> None:
@@ -276,6 +278,12 @@ class DynaModel:
         return self.nodesDict[nid]
 
 
+    def getNodes(self, nids: list[int]=[]) -> list[Node]:
+        ''' Return a list of nodes given a list of IDs
+        '''
+        return [self.nodesDict[nid] for nid in nids]
+
+
     def getNodesCoord(self, nids: list[int]=[]) -> list[tuple[float, float, float]]:
         ''' Return a list of nodes' coordinates given a list of IDs
         '''
@@ -295,7 +303,7 @@ class DynaModel:
         return self.elementDict[eid]
 
 
-    def getElementCoord(self, element: Union[int, Element]) -> list[tuple[float, float, float]]:
+    def getElementCoords(self, element: Union[int, Element]) -> list[tuple[float, float, float]]:
         ''' Return a list of coordinates of the element's nodes given the element or eid
         '''
         if isinstance(element, int):
@@ -320,10 +328,10 @@ class DynaModel:
         ''' Return the PART data given its ID
 
             verts = list of coordinates of the corresponding element shells.
-                    e.g. [(x1,y1,z1),(x2,y2,z2),(x3,y3,z3),(x4,y4,z4)]
+                    e.g. [(x1,y1,z1),(x2,y2,z2),(x3,y3,z3),(x4,y4,z4),(x5,y5,z5),(x6,y6,z6)]
             faces = indices of the corresponding nodes in verts (compatible with vedo's
                     mesh constructor)
-                    e.g. [[n1_ind,n2_ind,n3_ind],[n4_ind]]
+                    e.g. [[n1_ind,n2_ind,n3_ind,n4_ind],[n4_ind,n5_ind,n6_ind]]
         '''
         if isinstance(part, int):
             part = self.getPart(part)
@@ -331,29 +339,23 @@ class DynaModel:
         if not isinstance(part, Part):
             return None
 
-        verts = []
-        faces = []
-        for element in part.elements:
-            coord = self.getElementCoord(element)
-            if coord is not None:
-                faceBegin = len(verts)
-                faces.append(list(range(faceBegin, faceBegin + len(coord))))
-                verts.extend(coord)
+        verts = list({v.coord for element in part.elements for v in element.nodes})
+        vert_map = dict(zip(verts, range(len(verts))))
+
+        faces = [[vert_map[v.coord] for v in element.nodes] for element in part.elements]
         return verts, faces
 
 
     def getAllPartsData(self):
-        verts = []
-        faces = []
 
-        elements = set(eid for part in self.partsDict.values() for eid in part.elements)
+        verts = list({v.coord for part in self.partsDict.values() for element in part.elements for v in element.nodes})
+        elements = {element for part in self.partsDict.values() for element in part.elements}
+        # verts = [node.coord for node in self.nodesDict.values()]
+        # elements = self.elementDict.values()
 
-        for element in elements:
-            coord = self.getElementCoord(element)
-            if coord is not None:
-                faceBegin = len(verts)
-                faces.append(list(range(faceBegin, faceBegin + len(coord))))
-                verts.extend(coord)
+        vert_map = dict(zip(verts, range(len(verts))))
+
+        faces = [[vert_map[v.coord] for v in element.nodes] for element in elements]
         return verts, faces
 
 
@@ -387,8 +389,9 @@ if __name__ == "__main__":
     from vedo import mesh
     print("starting...")
     # coords = k_parser.getAllNodesCoord()
-    verts, faces = k_parser.getAllPartsData()
-    # verts, faces = k_parser.getPart(pid=20003)
+    # verts, faces = k_parser.getAllPartsData()
+    # verts, faces = k_parser.getPartData(20003)
+    verts, faces = k_parser.getPartData(250004)
     # coord = k_parser.getNodesCoord([100000,100001])
     # node = k_parser.getNode(100000)
     # coords = k_parser.getElementCoord(100005)
