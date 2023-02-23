@@ -351,22 +351,32 @@ class DynaModel:
         if not isinstance(part, Part):
             return None
 
+        # Create a set of the vertices that only appear in the part
         verts = list({v.coord for element in part.elements for v in element.nodes})
+
+        # Create a mapping from the new vertex list to the new index
         vert_map = dict(zip(verts, range(len(verts))))
 
+        # Iterate over the reduced vertex list and update the face indices
         faces = [[vert_map[v.coord] for v in element.nodes] for element in part.elements]
         return verts, faces
 
 
-    def getAllPartsData(self):
-
+    def getAllPartsData(self, verbose: bool=False):
+        # Create a set of the vertices that only appear in the part
         verts = list({v.coord for part in self.partsDict.values() for element in part.elements for v in element.nodes})
         elements = {element for part in self.partsDict.values() for element in part.elements}
         # verts = [node.coord for node in self.nodesDict.values()]
         # elements = self.elementDict.values()
 
+        if verbose:
+            print(f"Unreferenced nodes: {len(self.nodesDict) - len(verts)}")
+            print(f"Unreferenced elements: {len(self.elementDict) - len(elements)}")
+
+        # Create a mapping from the new vertex list to the new index
         vert_map = dict(zip(verts, range(len(verts))))
 
+        # Iterate over the reduced vertex list and update the face indices
         faces = [[vert_map[v.coord] for v in element.nodes] for element in elements]
         return verts, faces
 
@@ -411,7 +421,7 @@ if __name__ == "__main__":
     # part = k_parser.getPart(20003) # M50
 
     # Examples for Manual-chair
-    verts, faces = k_parser.getAllPartsData()
+    verts, faces = k_parser.getAllPartsData(verbose=True)
     # verts, faces = k_parser.getPartData(250004) # Manual-chair
     # node = k_parser.getNode(2112223) # Manual-chair
     # coords = k_parser.getElementCoords(2110001) # Manual-chair
