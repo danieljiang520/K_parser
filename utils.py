@@ -134,6 +134,26 @@ class Part():
     def __str__(self) -> str:
         return f"Part({self.elements})"
 
+    def getPartData(self):
+        ''' Return the PART data given its ID
+
+            verts = list of coordinates of the corresponding element shells.
+                    e.g. [(x1,y1,z1),(x2,y2,z2),(x3,y3,z3),(x4,y4,z4),(x5,y5,z5),(x6,y6,z6)]
+            faces = indices of the corresponding nodes in verts (compatible with vedo's
+                    mesh constructor)
+                    e.g. [[n1_ind,n2_ind,n3_ind,n4_ind],[n4_ind,n5_ind,n6_ind]]
+        '''
+
+        # Create a set of the vertices that only appear in the part
+        verts = list({v.coord for element in self.elements for v in element.nodes})
+
+        # Create a mapping from the new vertex list to the new index
+        vert_map = dict(zip(verts, range(len(verts))))
+
+        # Iterate over the reduced vertex list and update the face indices
+        faces = [[vert_map[v.coord] for v in element.nodes] for element in self.elements]
+        return verts, faces
+
 
 
 
