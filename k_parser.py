@@ -408,7 +408,7 @@ if __name__ == "__main__":
     # verts, faces = k_parser.getPartData(20003) # M50
     # coord = k_parser.getNodesCoord([100000,100001]) # M50
     # node = k_parser.getNode(100000) # M50
-    # coords = k_parser.getElementCoord(100005) # M50
+    # coords = k_parser.getElementCoords(204116) # M50
     # part = k_parser.getPart(20003) # M50
 
     # Examples for Manual-chair
@@ -417,10 +417,10 @@ if __name__ == "__main__":
     # node = k_parser.getNode(2112223) # Manual-chair
     # coords = k_parser.getElementCoords(2110001) # Manual-chair
 
-    print(f"len(verts): {len(verts)}")
-    print(f"len(faces): {len(faces)}")
-    print(f"last vert: {verts[-1]}")
-    print(f"last face: {faces[-1]}")
-    print("Displaying object with vedo...")
+    # print(f"len(verts): {len(verts)}")
+    # print(f"len(faces): {len(faces)}")
+    # print(f"last vert: {verts[-1]}")
+    # print(f"last face: {faces[-1]}")
+    # print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()
 
