@@ -390,6 +390,7 @@ if __name__ == "__main__":
     Example: display a part using vedo
     python3 k_parser.py -d data/UMTRI_M50
     python3 k_parser.py -f data/UMTRI_M50/UMTRI_HBM_M50_V1.2_Mesh_Components.k data/UMTRI_M50/UMTRI_HBM_M50_V1.2_Nodes.k
+    python3 k_parser.py -f data/Manual-chair-geometry.k
     """
 
     from vedo import mesh
