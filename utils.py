@@ -6,7 +6,6 @@
 # %% standard lib imports
 import copy
 from enum import Enum
-import numpy as np
 from pathlib import Path
 from sys import stderr
 from typing import Union
