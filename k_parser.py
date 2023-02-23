@@ -159,12 +159,13 @@ class DynaModel:
         # Check if id already exists
         if id in self.nodesDict:
             node = self.nodesDict[id]
-            if node is not None:
+            if node.lineNum != -1:
                 eprint(f"Invalid {kline.keyword.name}: Repeated node; id: {id}, coord: {coord}")
                 return
             else:
                 # Update node
-                self.nodesDict[id] = Node(coord, kline.lineNum)
+                self.nodesDict[id].coord = coord
+                self.nodesDict[id].lineNum = kline.lineNum
         else:
             # Add node to dictionary
             self.nodesDict[id] = Node(coord, kline.lineNum)
@@ -208,7 +209,7 @@ class DynaModel:
 
                 if nid not in self.nodesDict:
                     # Add node to dictionary
-                    self.nodesDict[nid] = None
+                    self.nodesDict[nid] = Node()
                 nodes.append(self.nodesDict[nid])
 
         except ValueError:
@@ -362,10 +363,6 @@ class DynaModel:
         if verbose:
             print(f"Unreferenced nodes: {len(self.nodesDict) - len(verts)}")
             print(f"Unreferenced elements: {len(self.elementDict) - len(elements)}")
-            print(f"len(verts): {len(verts)}")
-            print(f"len(faces): {len(faces)}")
-            print(f"last vert: {verts[-1]}")
-            print(f"last face: {faces[-1]}")
 
         # Create a mapping from the new vertex list to the new index
         vert_map = dict(zip(verts, range(len(verts))))
@@ -407,7 +404,7 @@ if __name__ == "__main__":
     print("starting...")
     # Examples for M50
     # coords = k_parser.getAllNodesCoord()
-    # verts, faces = k_parser.getAllPartsData()
+    verts, faces = k_parser.getAllPartsData(verbose=True)
     # verts, faces = k_parser.getPartData(20003) # M50
     # coord = k_parser.getNodesCoord([100000,100001]) # M50
     # node = k_parser.getNode(100000) # M50
@@ -415,11 +412,15 @@ if __name__ == "__main__":
     # part = k_parser.getPart(20003) # M50
 
     # Examples for Manual-chair
-    verts, faces = k_parser.getAllPartsData(verbose=True)
+    # verts, faces = k_parser.getAllPartsData(verbose=True)
     # verts, faces = k_parser.getPartData(250004) # Manual-chair
     # node = k_parser.getNode(2112223) # Manual-chair
     # coords = k_parser.getElementCoords(2110001) # Manual-chair
 
+    print(f"len(verts): {len(verts)}")
+    print(f"len(faces): {len(faces)}")
+    print(f"last vert: {verts[-1]}")
+    print(f"last face: {faces[-1]}")
     print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()
 
