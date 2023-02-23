@@ -74,6 +74,11 @@ class DynaModel:
 
     def __init__(self, args: Union[list[str],  str]) -> None:
         ''' Initialize DynaModel
+
+        nodesDict: dict[int, Node] - dictionary of nodes with node id as key.
+                   Value can be None if not defined in the k file but referenced in the element
+        elementDict: dict[int, Element] - dictionary of elements with element id as key.
+        partsDict: dict[int, Part] - dictionary of parts with part id as key.
         '''
         self.nodesDict = defaultdict(Node)
         self.elementDict = defaultdict(Element)
@@ -154,17 +159,15 @@ class DynaModel:
         # Check if id already exists
         if id in self.nodesDict:
             node = self.nodesDict[id]
-            if node.lineNum != -1:
+            if node is not None:
                 eprint(f"Invalid {kline.keyword.name}: Repeated node; id: {id}, coord: {coord}")
                 return
             else:
                 # Update node
-                node.coord = coord
-                node.lineNum = kline.lineNum
+                self.nodesDict[id] = Node(coord, kline.lineNum)
         else:
             # Add node to dictionary
-            node = Node(coord, kline.lineNum)
-            self.nodesDict[id] = node
+            self.nodesDict[id] = Node(coord, kline.lineNum)
 
 
     def __ELEMENT__(self, kline: KLine, keyword_args) -> None:
@@ -182,6 +185,7 @@ class DynaModel:
         numNodes = 0
         if type == ELEMENT_TYPE.UNKNOWN:
             # Disregard unknown element type
+            # eprint(f"Invalid {kline.keyword.name}: unknown element type; args: {kline.values}")
             return
         elif type == ELEMENT_TYPE.BEAM:
             numNodes = 3
@@ -196,7 +200,7 @@ class DynaModel:
             eid = int(kline.values[0])
             pid = int(kline.values[1])
 
-            nodes = set()
+            nodes = []
             for nid in map(int, kline.values[2:2+numNodes]):
                 # 0 is an invalid node id
                 if nid == 0:
@@ -204,8 +208,8 @@ class DynaModel:
 
                 if nid not in self.nodesDict:
                     # Add node to dictionary
-                    self.nodesDict[nid] = Node()
-                nodes.add(self.nodesDict[nid])
+                    self.nodesDict[nid] = None
+                nodes.append(self.nodesDict[nid])
 
         except ValueError:
             # Check if the types are correct
@@ -214,8 +218,10 @@ class DynaModel:
 
         # Add element to dictionary
         if eid in self.elementDict:
-            # NOTE: This is a repeated element (element_solid and element_shell might have the same eid)
+            # NOTE: This is a repeated element
+            # e.g., element_solid and element_shell might have the same eid
             self.elementDict[eid].addType(type)
+            self.elementDict[eid].addLineNum(kline.lineNum)
         else:
             self.elementDict[eid] = Element(nodes, type, kline.lineNum)
 
@@ -388,14 +394,20 @@ if __name__ == "__main__":
 
     from vedo import mesh
     print("starting...")
+    # Examples for M50
     # coords = k_parser.getAllNodesCoord()
     # verts, faces = k_parser.getAllPartsData()
-    # verts, faces = k_parser.getPartData(20003)
-    verts, faces = k_parser.getPartData(250004)
-    # coord = k_parser.getNodesCoord([100000,100001])
-    # node = k_parser.getNode(100000)
-    # coords = k_parser.getElementCoord(100005)
-    # part = k_parser.getPart(20003)
+    # verts, faces = k_parser.getPartData(20003) # M50
+    # coord = k_parser.getNodesCoord([100000,100001]) # M50
+    # node = k_parser.getNode(100000) # M50
+    # coords = k_parser.getElementCoord(100005) # M50
+    # part = k_parser.getPart(20003) # M50
+
+    # Examples for Manual-chair
+    verts, faces = k_parser.getAllPartsData()
+    # verts, faces = k_parser.getPartData(250004) # Manual-chair
+    # node = k_parser.getNode(2112223) # Manual-chair
+    # coords = k_parser.getElementCoords(2110001) # Manual-chair
 
     print(f"len(verts): {len(verts)}")
     print(f"len(faces): {len(faces)}")

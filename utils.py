@@ -49,7 +49,7 @@ class Node():
 
         if isinstance(plist, Node):  # passing a node
             self.coord = copy.deepcopy(plist.coord)
-        elif is_sequence(plist):  # passing a list
+        elif is_sequence(plist):  # passing a tuple or a list
             self.coord = plist
         else:
             raise ValueError("Invalid input type for Node")
@@ -68,29 +68,33 @@ class Node():
 class Element():
     ''' Class for storing the information of an element
     '''
-    def __init__(self, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, lineNum: int=-1):
+    def __init__(self, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, lineNums: list[int]=[]):
 
         # nodes
-        if isinstance(nodes, list):
-            self.nodes = set(nodes)
-        elif isinstance(nodes, set):
+        if is_sequence(nodes):
             self.nodes = nodes
         else:
             raise ValueError("Invalid input type for Element")
 
         # types
         self.types = []
-        if isinstance(type, ELEMENT_TYPE):
-            self.addType(type)
-        elif isinstance(type, list):
+        if isinstance(type, list):
             self.types = type
+        elif isinstance(type, ELEMENT_TYPE):
+            self.addType(type)
         elif isinstance(type, str):
             self.addType(type)
         else:
             raise ValueError("Invalid input type for Element")
 
         # line number
-        self.lineNum = lineNum
+        self.lineNum = []
+        if isinstance(lineNums, list):
+            self.lineNum = lineNums
+        elif isinstance(lineNums, int):
+            self.addLineNum(lineNums)
+        else:
+            raise ValueError("Invalid input type for Element")
 
     def __str__(self) -> str:
         return f"Element_{self.types}({self.nodes})"
@@ -104,6 +108,11 @@ class Element():
             self.types.append(ELEMENT_TYPE[type])
         else:
             raise ValueError("Invalid input for Element.addType")
+
+    def addLineNum(self, lineNum: int):
+        ''' Add a line number to the element
+        '''
+        self.lineNum.append(lineNum)
 
 
 class Part():
@@ -132,40 +141,6 @@ class Part():
 # Helper functions
 def eprint(*args, **kwargs):
     print(*args, file=stderr, **kwargs)
-
-
-def make3d(pts, transpose=False):
-    """
-    Convert a list of 2D or 3D points to a numpy array of 3D points.
-    """
-    pts = np.asarray(pts)
-
-    if pts.dtype == "object":
-        raise ValueError("Cannot form a valid numpy array, input may be non-homogenous")
-
-    if pts.shape[0] == 0:  # empty list
-        raise ValueError("Empty list is not supported.")
-
-    if pts.ndim == 1:
-        if pts.shape[0] == 2:
-            return np.hstack([pts, [0]]).astype(pts.dtype)
-        elif pts.shape[0] == 3:
-            return pts
-        else:
-            raise ValueError
-
-    if pts.shape[1] == 3:
-        return pts
-
-    if transpose:
-        pts = pts.T
-
-    if pts.shape[1] == 2:
-        return np.c_[pts, np.zeros(pts.shape[0], dtype=pts.dtype)]
-
-    if pts.shape[1] != 3:
-        raise ValueError("input shape is not supported.")
-    return pts
 
 
 def is_list_of_strings(lst):
