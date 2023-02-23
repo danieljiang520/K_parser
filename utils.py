@@ -70,6 +70,8 @@ class Element():
     def __init__(self, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, lineNums: list[int]=[]):
 
         # nodes
+        # NOTE: the order of the nodes is important,
+        # and there can be duplicate nodes since the polygon starts from the first node and ends at the same node
         if is_sequence(nodes):
             self.nodes = nodes
         else:
