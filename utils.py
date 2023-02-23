@@ -146,13 +146,13 @@ class Part():
         '''
 
         # Create a set of the vertices that only appear in the part
-        verts = list({v.coord for element in self.elements for v in element.nodes if v.lineNum != -1})
+        verts = list({v.coord for element in self.elements for v in element.nodes})
 
         # Create a mapping from the new vertex list to the new index
         vert_map = dict(zip(verts, range(len(verts))))
 
         # Iterate over the reduced vertex list and update the face indices
-        faces = [[vert_map[v.coord] for v in element.nodes if v.coord in vert_map and v.lineNum != -1] for element in self.elements]
+        faces = [[vert_map[v.coord] for v in element.nodes] for element in self.elements]
         return verts, faces
 
 
