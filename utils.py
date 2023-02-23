@@ -117,7 +117,7 @@ class Element():
 class Part():
     ''' Class for storing the information of a part
     '''
-    def __init__(self,  elements: list[Element]=[], lineNum: int=-1, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, timid: int=0):
+    def __init__(self,  elements: list[Element]=[], lineNum: int=-1, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, tmid: int=0):
         self.elements = set(elements)
         self.lineNum = lineNum
 
@@ -128,7 +128,7 @@ class Part():
         self.hgid = hgid
         self.grav = grav
         self.adpopt = adpopt
-        self.timid = timid
+        self.tmid = tmid
 
     def __str__(self) -> str:
         return f"Part({self.elements})"

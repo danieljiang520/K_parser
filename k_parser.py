@@ -234,16 +234,21 @@ class DynaModel:
         '''
 
         if len(klineList) < 2:
-            eprint(f"Invalid PART: too less arguments")
+            eprint(f"Invalid PART: too less lines: {len(klineList)}")
             return
 
         header = klineList[0].values[0]
 
-        if len(klineList[1].values) != 8:
-            eprint(f"Invalid PART: too less arguments")
+        # Must have at least one argument: pid
+        # NOTE: in the DYNA datasheet, it has pid, secid, mid, eosid, hgid, grav, adpopt, tmid listed as required arguments
+        # However, in the some files, there are only pid, secid, and mid. Therefore, we only check for pid
+        if len(klineList[1].values) < 1:
+            eprint(f"Invalid PART: too less arguments: {klineList[1].values}")
             return
 
-        pid, secid, mid, eosid, hgid, grav, adpopt, timid = [int(i) for i in klineList[1].values]
+        vals = [int(i) for i in klineList[1].values] + [0] * (8 - len(klineList[1].values))
+        pid, secid, mid, eosid, hgid, grav, adpopt, tmid = vals
+
         self.partsDict[pid].lineNum = klineList[0].lineNum
         self.partsDict[pid].header = header
         self.partsDict[pid].secid = secid
@@ -252,7 +257,7 @@ class DynaModel:
         self.partsDict[pid].hgid = hgid
         self.partsDict[pid].grav = grav
         self.partsDict[pid].adpopt = adpopt
-        self.partsDict[pid].timid = timid
+        self.partsDict[pid].tmid = tmid
 
 
     def __KEYWORD__(self, kline: KLine):
