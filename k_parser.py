@@ -250,6 +250,7 @@ class DynaModel:
         pid, secid, mid, eosid, hgid, grav, adpopt, tmid = vals
 
         self.partsDict[pid].lineNum = klineList[0].lineNum
+        self.partsDict[pid].lineLastNum = klineList[-1].lineNum
         self.partsDict[pid].header = header
         self.partsDict[pid].secid = secid
         self.partsDict[pid].mid = mid
