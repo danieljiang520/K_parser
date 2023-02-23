@@ -1,6 +1,6 @@
 # K_parser
 ## Requirements
-- Python 3.10+ (only for the new match case statements. We can easily change these lines to downgrade to an older python version)
+- Python 3.7+ (only for the new match case statements. We can easily change these lines to downgrade to an older python version)
 
 ## Usage
 ```
