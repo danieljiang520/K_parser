@@ -362,6 +362,10 @@ class DynaModel:
         if verbose:
             print(f"Unreferenced nodes: {len(self.nodesDict) - len(verts)}")
             print(f"Unreferenced elements: {len(self.elementDict) - len(elements)}")
+            print(f"len(verts): {len(verts)}")
+            print(f"len(faces): {len(faces)}")
+            print(f"last vert: {verts[-1]}")
+            print(f"last face: {faces[-1]}")
 
         # Create a mapping from the new vertex list to the new index
         vert_map = dict(zip(verts, range(len(verts))))
@@ -415,12 +419,6 @@ if __name__ == "__main__":
     # verts, faces = k_parser.getPartData(250004) # Manual-chair
     # node = k_parser.getNode(2112223) # Manual-chair
     # coords = k_parser.getElementCoords(2110001) # Manual-chair
-
-    print(f"len(verts): {len(verts)}")
-    print(f"len(faces): {len(faces)}")
-
-    print(f"last vert: {verts[-1]}")
-    print(f"last face: {faces[-1]}")
 
     print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()
