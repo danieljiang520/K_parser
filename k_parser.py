@@ -159,13 +159,13 @@ class DynaModel:
         # Check if id already exists
         if id in self.nodesDict:
             node = self.nodesDict[id]
-            if node.lineNum != -1:
+            if node._lineNum != -1:
                 eprint(f"Invalid {kline.keyword.name}: Repeated node; id: {id}, coord: {coord}")
                 return
             else:
                 # Update node
-                self.nodesDict[id].coord = coord
-                self.nodesDict[id].lineNum = kline.lineNum
+                self.nodesDict[id]._coord = coord
+                self.nodesDict[id]._lineNum = kline.lineNum
         else:
             # Add node to dictionary
             self.nodesDict[id] = Node(coord, kline.lineNum)
@@ -229,7 +229,7 @@ class DynaModel:
             self.elementDict[(eid, pid)] = Element(nodes, type, kline.lineNum)
 
         # NOTE: an element can be used by multiple parts. Add element to part
-        self.partsDict[pid].elements.add(self.elementDict[(eid, pid)])
+        self.partsDict[pid]._elements.add(self.elementDict[(eid, pid)])
 
 
     def __PART__(self, klineList: list[KLine], keyword_args) -> None:
@@ -252,8 +252,8 @@ class DynaModel:
         vals = [int(i) for i in klineList[1].values] + [0] * (8 - len(klineList[1].values))
         pid, secid, mid, eosid, hgid, grav, adpopt, tmid = vals
 
-        self.partsDict[pid].lineNum = klineList[0].lineNum
-        self.partsDict[pid].lineLastNum = klineList[-1].lineNum
+        self.partsDict[pid]._lineNum = klineList[0].lineNum
+        self.partsDict[pid]._lineLastNum = klineList[-1].lineNum
         self.partsDict[pid].header = header
         self.partsDict[pid].secid = secid
         self.partsDict[pid].mid = mid
@@ -302,7 +302,7 @@ class DynaModel:
     def getNodesCoord(self, nids: list[int]=[]) -> list[tuple[float, float, float]]:
         ''' Return a list of nodes' coordinates given a list of IDs
         '''
-        return [self.nodesDict[nid].getCoord() for nid in nids]
+        return [self.nodesDict[nid]._coord() for nid in nids]
 
 
     def getAllNodesCoord(self) -> list[Node]:
@@ -327,7 +327,7 @@ class DynaModel:
         if not isinstance(element, Element):
             return None
 
-        return [node.getCoord() for node in element.nodes]
+        return [node._coord() for node in element._nodes]
 
 
     def getPart(self, pid: int) -> Part:
@@ -359,8 +359,8 @@ class DynaModel:
 
     def getAllPartsData(self, verbose: bool=False):
         # Create a set of the vertices that only appear in the part
-        verts = list({v.coord for part in self.partsDict.values() for element in part.elements for v in element.nodes})
-        elements = {element for part in self.partsDict.values() for element in part.elements}
+        verts = list({v._coord for part in self.partsDict.values() for element in part._elements for v in element._nodes})
+        elements = {element for part in self.partsDict.values() for element in part._elements}
 
         if verbose:
             print(f"Unreferenced nodes: {len(self.nodesDict) - len(verts)}")
@@ -370,7 +370,7 @@ class DynaModel:
         vert_map = dict(zip(verts, range(len(verts))))
 
         # Iterate over the reduced vertex list and update the face indices
-        faces = [[vert_map[v.coord] for v in element.nodes] for element in elements]
+        faces = [[vert_map[v._coord] for v in element._nodes] for element in elements]
         return verts, faces
 
 

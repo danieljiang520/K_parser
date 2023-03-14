@@ -45,23 +45,54 @@ class Node():
     ''' Class for storing the information of a node
     '''
     def __init__(self, plist=(0, 0, 0), lineNum: int=-1):
+        ''' Initialize the node with a list of coordinates and a line number
+        '''
+        # the coordinates are stored as a tuple
+        self._coord = plist
 
-        if isinstance(plist, Node):  # passing a node
-            self.coord = copy.deepcopy(plist.coord)
-        elif is_sequence(plist):  # passing a tuple or a list
-            self.coord = plist
+        # line number
+        self._lineNum = lineNum
+
+    @property
+    def coord(self):
+        ''' Return the coordinates of the node
+        '''
+        return self._coord
+
+    @coord.setter
+    def coord(self, value):
+        ''' Set the coordinates of the node
+        '''
+        if isinstance(value, Node):  # passing a node
+            self._coord = copy.deepcopy(value._coord)
+        elif is_sequence(value):  # passing a tuple or a list
+            self._coord = value
         else:
             raise ValueError("Invalid input type for Node")
 
-        self.lineNum = lineNum
-
-    def getCoord(self):
-        ''' Return the coordinates of the node
+    @coord.deleter
+    def coord(self):
+        ''' Delete the coordinates of the node
         '''
-        return self.coord
+        del self._coord
+
+    @property
+    def lineNum(self):
+        ''' Return the line number of the node
+        '''
+        return self._lineNum
+
+    @lineNum.setter
+    def lineNum(self, value):
+        ''' Set the line number of the node
+        '''
+        if isinstance(value, int):
+            self._lineNum = value
+        else:
+            raise ValueError("Invalid input type for Node")
 
     def __str__(self) -> str:
-        return f"Node({self.coord})"
+        return f"Node({self._coord})"
 
 
 class Element():
@@ -70,47 +101,119 @@ class Element():
     def __init__(self, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, lineNum: int=-1):
 
         # nodes
-        # NOTE: there can be duplicate nodes in an element
-        if is_sequence(nodes):
-            self.nodes = nodes
-        else:
-            raise ValueError("Invalid input type for Element")
+        self._nodes = nodes
 
-        # types
-        if isinstance(type, ELEMENT_TYPE):
-            self.types = type
-        else:
-            raise ValueError("Invalid input type for Element")
+        # type
+        self._type = type
 
         # line number
-        if isinstance(lineNum, int):
-            self.lineNum = lineNum
+        self._lineNum = lineNum
+
+
+    @property
+    def nodes(self):
+        ''' Return the nodes of the element
+        '''
+        return self._nodes
+
+    @nodes.setter
+    def nodes(self, value):
+        ''' Set the nodes of the element
+        '''
+        # NOTE: there can be duplicate nodes in an element
+        if is_sequence(value):
+            self._nodes = value
+        else:
+            raise ValueError("Invalid input type for Element")
+
+    @property
+    def type(self):
+        ''' Return the type of the element
+        '''
+        return self._type
+
+    @type.setter
+    def type(self, value):
+        ''' Set the type of the element
+        '''
+        if isinstance(value, ELEMENT_TYPE):
+            self._type = value
+        else:
+            raise ValueError("Invalid input type for Element")
+
+    @property
+    def lineNum(self):
+        ''' Return the line number of the element
+        '''
+        return self._lineNum
+
+    @lineNum.setter
+    def lineNum(self, value):
+        ''' Set the line number of the element
+        '''
+        if isinstance(value, int):
+            self._lineNum = value
         else:
             raise ValueError("Invalid input type for Element")
 
     def __str__(self) -> str:
-        return f"Element_{self.types}({self.nodes})"
+        return f"Element_{self._type}({self._nodes})"
 
 
 class Part():
     ''' Class for storing the information of a part
     '''
     def __init__(self,  elements: list[Element]=[], lineNum: int=-1, lineLastNum: int=-1, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, tmid: int=0):
-        self.elements = set(elements)
-        self.lineNum = lineNum # line number of the header
-        self.lineLastNum = lineLastNum # line number of the last line
+        ''' Initialize the part with a list of elements and a line number
+        '''
+        # the elements are stored as a set
+        self._elements = set(elements)
 
-        self.header = header
-        self.secid = secid
-        self.mid = mid
-        self.eosid = eosid
-        self.hgid = hgid
-        self.grav = grav
-        self.adpopt = adpopt
-        self.tmid = tmid
+        # line number of the header
+        self._lineNum = lineNum
 
-    def __str__(self) -> str:
-        return f"Part({self.elements})"
+        # line number of the last line
+        self._lineLastNum = lineLastNum
+
+        # other part data
+        self._header = header
+        self._secid = secid
+        self._mid = mid
+        self._eosid = eosid
+        self._hgid = hgid
+        self._grav = grav
+        self._adpopt = adpopt
+        self._tmid = tmid
+
+    @property
+    def elements(self):
+        ''' Return the elements of the part
+        '''
+        return self._elements
+
+    @elements.setter
+    def elements(self, value):
+        ''' Set the elements of the part
+        '''
+        if is_sequence(value):
+            self._elements = set(value)
+        else:
+            raise ValueError("Invalid input type for Part")
+
+    @property
+    def lineNum(self):
+        ''' Return the line number of the part
+        '''
+        return self._lineNum
+
+    @lineNum.setter
+    def lineNum(self, value):
+        ''' Set the line number of the part
+        '''
+        if isinstance(value, int):
+            self._lineNum = value
+        else:
+            raise ValueError("Invalid input type for Part")
 
     def getPartData(self):
         ''' Return the PART data given its ID
@@ -123,15 +226,17 @@ class Part():
         '''
 
         # Create a set of the vertices that only appear in the part
-        verts = list({v.coord for element in self.elements for v in element.nodes})
+        verts = list({v._coord for element in self._elements for v in element._nodes})
 
         # Create a mapping from the new vertex list to the new index
         vert_map = dict(zip(verts, range(len(verts))))
 
         # Iterate over the reduced vertex list and update the face indices
-        faces = [[vert_map[v.coord] for v in element.nodes] for element in self.elements]
+        faces = [[vert_map[v._coord] for v in element._nodes] for element in self._elements]
         return verts, faces
 
+    def __str__(self) -> str:
+        return f"Part({self._elements})"
 
 
 
