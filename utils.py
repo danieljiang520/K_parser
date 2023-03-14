@@ -44,7 +44,7 @@ class ELEMENT_TYPE(Enum):
 class Node():
     ''' Class for storing the information of a node
     '''
-    def __init__(self, plist=(0, 0, 0), lineNum: int=-1):
+    def __init__(self, plist=(0, 0, 0), lineNum: int=None):
         ''' Initialize the node with a list of coordinates and a line number
         '''
         # the coordinates are stored as a tuple
@@ -52,6 +52,9 @@ class Node():
 
         # line number
         self._lineNum = lineNum
+
+        # modified flag
+        self._modified = False
 
     @property
     def coord(self):
@@ -69,6 +72,9 @@ class Node():
             self._coord = value
         else:
             raise ValueError("Invalid input type for Node")
+
+        # set the modified flag
+        self._modified = True
 
     @coord.deleter
     def coord(self):
@@ -91,6 +97,9 @@ class Node():
         else:
             raise ValueError("Invalid input type for Node")
 
+        # set the modified flag
+        self._modified = True
+
     def __str__(self) -> str:
         return f"Node({self._coord})"
 
@@ -98,7 +107,7 @@ class Node():
 class Element():
     ''' Class for storing the information of an element
     '''
-    def __init__(self, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, lineNum: int=-1):
+    def __init__(self, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, lineNum: int=None):
 
         # nodes
         self._nodes = nodes
@@ -108,6 +117,9 @@ class Element():
 
         # line number
         self._lineNum = lineNum
+
+        # modified flag
+        self._modified = False
 
 
     @property
@@ -126,6 +138,9 @@ class Element():
         else:
             raise ValueError("Invalid input type for Element")
 
+        # set the modified flag
+        self._modified = True
+
     @property
     def type(self):
         ''' Return the type of the element
@@ -140,6 +155,9 @@ class Element():
             self._type = value
         else:
             raise ValueError("Invalid input type for Element")
+
+        # set the modified flag
+        self._modified = True
 
     @property
     def lineNum(self):
@@ -156,6 +174,9 @@ class Element():
         else:
             raise ValueError("Invalid input type for Element")
 
+        # set the modified flag
+        self._modified = True
+
     def __str__(self) -> str:
         return f"Element_{self._type}({self._nodes})"
 
@@ -163,7 +184,7 @@ class Element():
 class Part():
     ''' Class for storing the information of a part
     '''
-    def __init__(self,  elements: list[Element]=[], lineNum: int=-1, lineLastNum: int=-1, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, tmid: int=0):
+    def __init__(self,  elements: list[Element]=[], lineNum: int=None, lineLastNum: int=None, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, tmid: int=0):
         ''' Initialize the part with a list of elements and a line number
         '''
         # the elements are stored as a set
@@ -185,6 +206,9 @@ class Part():
         self._adpopt = adpopt
         self._tmid = tmid
 
+        # modified flag
+        self._modified = False
+
     @property
     def elements(self):
         ''' Return the elements of the part
@@ -199,6 +223,9 @@ class Part():
             self._elements = set(value)
         else:
             raise ValueError("Invalid input type for Part")
+
+        # set the modified flag
+        self._modified = True
 
     @property
     def lineNum(self):
@@ -215,6 +242,27 @@ class Part():
         else:
             raise ValueError("Invalid input type for Part")
 
+        # set the modified flag
+        self._modified = True
+
+    @property
+    def lineLastNum(self):
+        ''' Return the line number of the last line of the part
+        '''
+        return self._lineLastNum
+
+    @lineLastNum.setter
+    def lineLastNum(self, value):
+        ''' Set the line number of the last line of the part
+        '''
+        if isinstance(value, int):
+            self._lineLastNum = value
+        else:
+            raise ValueError("Invalid input type for Part")
+
+        # set the modified flag
+        self._modified = True
+
     def getPartData(self):
         ''' Return the PART data given its ID
 
@@ -226,13 +274,13 @@ class Part():
         '''
 
         # Create a set of the vertices that only appear in the part
-        verts = list({v._coord for element in self._elements for v in element._nodes})
+        verts = list({v.coord for element in self.elements for v in element.nodes})
 
         # Create a mapping from the new vertex list to the new index
         vert_map = dict(zip(verts, range(len(verts))))
 
         # Iterate over the reduced vertex list and update the face indices
-        faces = [[vert_map[v._coord] for v in element._nodes] for element in self._elements]
+        faces = [[vert_map[v.coord] for v in element.nodes] for element in self.elements]
         return verts, faces
 
     def __str__(self) -> str:

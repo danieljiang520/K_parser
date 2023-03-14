@@ -24,7 +24,7 @@ class KLine:
         values: list
     '''
 
-    def __init__(self, line: str='*KEYWORD', currKeyword: KEYWORD_TYPE=KEYWORD_TYPE.KEYWORD, lineNum: int=-1) -> None:
+    def __init__(self, line: str='*KEYWORD', currKeyword: KEYWORD_TYPE=KEYWORD_TYPE.KEYWORD, lineNum: int=None, fileInd: int=None) -> None:
         ''' Initialize KLine
         '''
 
@@ -64,6 +64,7 @@ class KLine:
             self.values = line
 
         self.lineNum = lineNum
+        self.fileInd = fileInd
 
 
 #===================================================================================================
@@ -84,10 +85,13 @@ class DynaModel:
         self.elementDict = defaultdict(Element) # need to be indexed by (eid, pid)
         self.partsDict = defaultdict(Part)
 
+        self.files = []
         if is_list_of_strings(args):
-            for filename in args:
-                self.__readFile__(filename)
+            self.files = args
+            for fileInd, filename in enumerate(args):
+                self.__readFile__(filename, fileInd)
         elif isinstance(args, str):
+            self.files = [args]
             self.__readFile__(args)
         else:
             eprint("unknown argument: ", args)
@@ -99,7 +103,7 @@ class DynaModel:
         print(f"Total parts: {len(self.partsDict)}")
 
 
-    def __readFile__(self, filename: str) -> None:
+    def __readFile__(self, filename: str, fileInd: int=0) -> None:
         ''' Read a k file
         '''
 
@@ -110,7 +114,7 @@ class DynaModel:
         with open(filename, "rt") as reader:
             # Read the entire file line by line
             for i, line in enumerate(reader):
-                kline = KLine(line, currKeyword.keyword, i)
+                kline = KLine(line, currKeyword.keyword, i, fileInd)
 
                 # Skip comment or empty line
                 if not kline.is_valid:
@@ -159,13 +163,13 @@ class DynaModel:
         # Check if id already exists
         if id in self.nodesDict:
             node = self.nodesDict[id]
-            if node._lineNum != -1:
+            if isinstance(node.lineNum, int):
                 eprint(f"Invalid {kline.keyword.name}: Repeated node; id: {id}, coord: {coord}")
                 return
             else:
                 # Update node
-                self.nodesDict[id]._coord = coord
-                self.nodesDict[id]._lineNum = kline.lineNum
+                self.nodesDict[id].coord = coord
+                self.nodesDict[id].lineNum = kline.lineNum
         else:
             # Add node to dictionary
             self.nodesDict[id] = Node(coord, kline.lineNum)
@@ -229,7 +233,7 @@ class DynaModel:
             self.elementDict[(eid, pid)] = Element(nodes, type, kline.lineNum)
 
         # NOTE: an element can be used by multiple parts. Add element to part
-        self.partsDict[pid]._elements.add(self.elementDict[(eid, pid)])
+        self.partsDict[pid].elements.add(self.elementDict[(eid, pid)])
 
 
     def __PART__(self, klineList: list[KLine], keyword_args) -> None:
@@ -252,8 +256,8 @@ class DynaModel:
         vals = [int(i) for i in klineList[1].values] + [0] * (8 - len(klineList[1].values))
         pid, secid, mid, eosid, hgid, grav, adpopt, tmid = vals
 
-        self.partsDict[pid]._lineNum = klineList[0].lineNum
-        self.partsDict[pid]._lineLastNum = klineList[-1].lineNum
+        self.partsDict[pid].lineNum = klineList[0].lineNum
+        self.partsDict[pid].lineLastNum = klineList[-1].lineNum
         self.partsDict[pid].header = header
         self.partsDict[pid].secid = secid
         self.partsDict[pid].mid = mid
@@ -302,7 +306,7 @@ class DynaModel:
     def getNodesCoord(self, nids: list[int]=[]) -> list[tuple[float, float, float]]:
         ''' Return a list of nodes' coordinates given a list of IDs
         '''
-        return [self.nodesDict[nid]._coord() for nid in nids]
+        return [self.nodesDict[nid].coord() for nid in nids]
 
 
     def getAllNodesCoord(self) -> list[Node]:
@@ -327,7 +331,7 @@ class DynaModel:
         if not isinstance(element, Element):
             return None
 
-        return [node._coord() for node in element._nodes]
+        return [node.coord() for node in element.nodes]
 
 
     def getPart(self, pid: int) -> Part:
@@ -359,8 +363,8 @@ class DynaModel:
 
     def getAllPartsData(self, verbose: bool=False):
         # Create a set of the vertices that only appear in the part
-        verts = list({v._coord for part in self.partsDict.values() for element in part._elements for v in element._nodes})
-        elements = {element for part in self.partsDict.values() for element in part._elements}
+        verts = list({v.coord for part in self.partsDict.values() for element in part.elements for v in element.nodes})
+        elements = {element for part in self.partsDict.values() for element in part.elements}
 
         if verbose:
             print(f"Unreferenced nodes: {len(self.nodesDict) - len(verts)}")
@@ -370,8 +374,16 @@ class DynaModel:
         vert_map = dict(zip(verts, range(len(verts))))
 
         # Iterate over the reduced vertex list and update the face indices
-        faces = [[vert_map[v._coord] for v in element._nodes] for element in elements]
+        faces = [[vert_map[v.coord] for v in element.nodes] for element in elements]
         return verts, faces
+
+
+    def saveFile(self, filepath: str):
+        ''' Save the parsed file to a new file
+        '''
+        with open(filepath, 'w') as f:
+            # f.write(self._file)
+            pass
 
 
 
