@@ -283,18 +283,18 @@ class DynaModel:
         modifiedList = [[] for _ in range(len(self.filepaths))]
         for node in self.nodesDict.values():
             if node.modified:
-                modifiedList[node.source[0]].append(node.source[1])
+                modifiedList[node.source[0]].append((node.source[1], node))
 
         for element in self.elementDict.values():
             if element.modified:
-                modifiedList[element.source[0]].append(element.source[1])
+                modifiedList[element.source[0]].append((element.source[1], element))
 
         for part in self.partsDict.values():
             if part.modified:
-                modifiedList[part.source[0]].append(part.source[1])
+                modifiedList[part.source[0]].append((part.source[1], part))
 
         # Sort the list by line number
-        return [sorted(l) for l in modifiedList]
+        return [sorted(l, key=lambda element: element[0]) for l in modifiedList]
 
 
     _modesDict = {
@@ -403,18 +403,22 @@ class DynaModel:
         ''' Save the parsed file to a new file
         '''
         pass
-        # modifiedList = self.__createModifiedList__()
+        modifiedList = self.__createModifiedList__()
 
-        # for i, modifiedLineNums in enumerate(modifiedList):
-        #     if len(modifiedLineNums) == 0:
-        #         continue
+        for i, modifiedList in enumerate(modifiedList):
+            if len(modifiedList) == 0:
+                continue
 
-        #     with fileinput.input(self.filepaths[i], inplace=True) as file:
-        #         for lineNum, line in enumerate(file, start=1):
-        #             if lineNum in modifiedLineNums:
-        #                 print(new_lines[line_indices.index(lineNum)], end="")
-        #             else:
-        #                 print(line, end="")
+            lineNums, object = zip(*modifiedList)
+
+            # The fileinput.input function is used to read the contents of the file and replace the lines in place.
+            # The inplace=True argument ensures that the changes are written back to the file.
+            with fileinput.input(self.filepaths[i], inplace=True) as file:
+                for lineNum, line in enumerate(file, start=1):
+                    if lineNum in lineNums:
+                        print(object, end="")
+                    else:
+                        print(line, end="")
 
 
 #===================================================================================================
@@ -465,6 +469,7 @@ if __name__ == "__main__":
     print(f"len(faces): {len(faces)}")
     print(f"last vert: {verts[-1]}")
     print(f"last face: {faces[-1]}")
+
+    # k_parser.saveFile()
     print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()
-
