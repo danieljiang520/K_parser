@@ -402,8 +402,8 @@ class DynaModel:
     def saveFile(self):
         ''' Save the parsed file to a new file
         '''
-        pass
         modifiedList = self.__createModifiedList__()
+        print(f"Modified list: {modifiedList}")
 
         for i, modifiedList in enumerate(modifiedList):
             if len(modifiedList) == 0:
@@ -452,7 +452,7 @@ if __name__ == "__main__":
     print("starting...")
     # Examples for M50
     # coords = k_parser.getAllNodesCoord()
-    verts, faces = k_parser.getAllPartsData(verbose=True)
+    # verts, faces = k_parser.getAllPartsData(verbose=True)
     # verts, faces = k_parser.getPartData(20003) # M50
     # coord = k_parser.getNodesCoord([100000,100001]) # M50
     # node = k_parser.getNode(100000) # M50
@@ -460,9 +460,9 @@ if __name__ == "__main__":
     # part = k_parser.getPart(20003) # M50
 
     # Examples for Manual-chair
-    # verts, faces = k_parser.getAllPartsData(verbose=True)
+    verts, faces = k_parser.getAllPartsData(verbose=True)
     # verts, faces = k_parser.getPartData(250004) # Manual-chair
-    # node = k_parser.getNode(2112223) # Manual-chair
+    node = k_parser.getNode(2112223) # Manual-chair
     # coords = k_parser.getElementCoords(2110001) # Manual-chair
 
     print(f"len(verts): {len(verts)}")
@@ -470,6 +470,7 @@ if __name__ == "__main__":
     print(f"last vert: {verts[-1]}")
     print(f"last face: {faces[-1]}")
 
+    # node.coord = (0,0,0)
     # k_parser.saveFile()
     print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()
