@@ -67,7 +67,7 @@ class Node():
 class Element():
     ''' Class for storing the information of an element
     '''
-    def __init__(self, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, lineNums: list[int]=[]):
+    def __init__(self, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, lineNum: int=-1):
 
         # nodes
         # NOTE: there can be duplicate nodes in an element
@@ -77,42 +77,19 @@ class Element():
             raise ValueError("Invalid input type for Element")
 
         # types
-        self.types = []
-        if isinstance(type, list):
+        if isinstance(type, ELEMENT_TYPE):
             self.types = type
-        elif isinstance(type, ELEMENT_TYPE):
-            self.addType(type)
-        elif isinstance(type, str):
-            self.addType(type)
         else:
             raise ValueError("Invalid input type for Element")
 
         # line number
-        self.lineNum = []
-        if isinstance(lineNums, list):
-            self.lineNum = lineNums
-        elif isinstance(lineNums, int):
-            self.addLineNum(lineNums)
+        if isinstance(lineNum, int):
+            self.lineNum = lineNum
         else:
             raise ValueError("Invalid input type for Element")
 
     def __str__(self) -> str:
         return f"Element_{self.types}({self.nodes})"
-
-    def addType(self, type: Union[ELEMENT_TYPE, str]):
-        ''' Add a type to the element
-        '''
-        if isinstance(type, ELEMENT_TYPE):
-            self.types.append(type)
-        elif isinstance(type, str) and type in ELEMENT_TYPE.__members__:
-            self.types.append(ELEMENT_TYPE[type])
-        else:
-            raise ValueError("Invalid input for Element.addType")
-
-    def addLineNum(self, lineNum: int):
-        ''' Add a line number to the element
-        '''
-        self.lineNum.append(lineNum)
 
 
 class Part():

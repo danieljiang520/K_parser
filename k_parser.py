@@ -81,7 +81,7 @@ class DynaModel:
         partsDict: dict[int, Part] - dictionary of parts with part id as key.
         '''
         self.nodesDict = defaultdict(Node)
-        self.elementDict = defaultdict(Element)
+        self.elementDict = defaultdict(Element) # need to be indexed by (eid, pid)
         self.partsDict = defaultdict(Part)
 
         if is_list_of_strings(args):
@@ -107,7 +107,7 @@ class DynaModel:
         currKeyword = KLine()
         partList = []
 
-        with open(filename) as reader:
+        with open(filename, "rt") as reader:
             # Read the entire file line by line
             for i, line in enumerate(reader):
                 kline = KLine(line, currKeyword.keyword, i)
@@ -218,16 +218,18 @@ class DynaModel:
             return
 
         # Add element to dictionary
-        if eid in self.elementDict:
+        if (eid, pid) in self.elementDict:
             # NOTE: This is a repeated element
             # e.g., element_solid and element_shell might have the same eid
-            self.elementDict[eid].addType(type)
-            self.elementDict[eid].addLineNum(kline.lineNum)
+            print(f"Repeated element: eid: {eid}, pid: {pid}")
+            # self.elementDict[(eid, pid)].nodes = nodes
+            # self.elementDict[(eid, pid)].addType(type)
+            # self.elementDict[(eid, pid)].addLineNum(kline.lineNum)
         else:
-            self.elementDict[eid] = Element(nodes, type, kline.lineNum)
+            self.elementDict[(eid, pid)] = Element(nodes, type, kline.lineNum)
 
         # NOTE: an element can be used by multiple parts. Add element to part
-        self.partsDict[pid].elements.add(self.elementDict[eid])
+        self.partsDict[pid].elements.add(self.elementDict[(eid, pid)])
 
 
     def __PART__(self, klineList: list[KLine], keyword_args) -> None:
@@ -307,13 +309,13 @@ class DynaModel:
         return [node.getCoord() for node in self.nodesDict]
 
 
-    def getElement(self, eid: Union[int, Element]) -> Element:
+    def getElement(self, eid: int, pid: int) -> Element:
         ''' Return the ELEMENT given its ID
         '''
-        if eid not in self.elementDict:
+        if (eid, pid) not in self.elementDict:
             eprint(f"Element id: {eid} not in elementShellDict")
             return None
-        return self.elementDict[eid]
+        return self.elementDict[(eid, pid)]
 
 
     def getElementCoords(self, element: Union[int, Element]) -> list[tuple[float, float, float]]:
