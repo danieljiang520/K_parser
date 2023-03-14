@@ -4,7 +4,7 @@
 
 # %% standard lib imports
 from collections import defaultdict
-import re, argparse
+import re, argparse, fileinput
 from typing import Union
 
 # %% first party imports
@@ -85,13 +85,13 @@ class DynaModel:
         self.elementDict = defaultdict(Element) # need to be indexed by (eid, pid)
         self.partsDict = defaultdict(Part)
 
-        self.files = []
+        self.filepaths = []
         if is_list_of_strings(args):
-            self.files = args
+            self.filepaths = args
             for fileInd, filename in enumerate(args):
                 self.__readFile__(filename, fileInd)
         elif isinstance(args, str):
-            self.files = [args]
+            self.filepaths = [args]
             self.__readFile__(args)
         else:
             eprint("unknown argument: ", args)
@@ -163,16 +163,17 @@ class DynaModel:
         # Check if id already exists
         if id in self.nodesDict:
             node = self.nodesDict[id]
-            if isinstance(node.lineNum, int):
+            if node.source is not None:
                 eprint(f"Invalid {kline.keyword.name}: Repeated node; id: {id}, coord: {coord}")
                 return
             else:
                 # Update node
-                self.nodesDict[id].coord = coord
-                self.nodesDict[id].lineNum = kline.lineNum
+                # NOTE: by specifying _coord and _source, we are updating the node quietly (without marking modified)
+                self.nodesDict[id]._coord = coord
+                self.nodesDict[id]._source = (kline.fileInd, kline.lineNum)
         else:
             # Add node to dictionary
-            self.nodesDict[id] = Node(coord, kline.lineNum)
+            self.nodesDict[id] = Node(coord, kline.fileInd, kline.lineNum)
 
 
     def __ELEMENT__(self, kline: KLine, keyword_args) -> None:
@@ -230,7 +231,7 @@ class DynaModel:
             # self.elementDict[(eid, pid)].addType(type)
             # self.elementDict[(eid, pid)].addLineNum(kline.lineNum)
         else:
-            self.elementDict[(eid, pid)] = Element(nodes, type, kline.lineNum)
+            self.elementDict[(eid, pid)] = Element(nodes, type, kline.fileInd, kline.lineNum)
 
         # NOTE: an element can be used by multiple parts. Add element to part
         self.partsDict[pid].elements.add(self.elementDict[(eid, pid)])
@@ -274,6 +275,26 @@ class DynaModel:
 
     def __END__(self, kline: KLine):
         pass
+
+
+    def __createModifiedList__(self):
+        ''' Create a list of the sources of modified nodes, elements and parts
+        '''
+        modifiedList = [[] for _ in range(len(self.filepaths))]
+        for node in self.nodesDict.values():
+            if node.modified:
+                modifiedList[node.source[0]].append(node.source[1])
+
+        for element in self.elementDict.values():
+            if element.modified:
+                modifiedList[element.source[0]].append(element.source[1])
+
+        for part in self.partsDict.values():
+            if part.modified:
+                modifiedList[part.source[0]].append(part.source[1])
+
+        # Sort the list by line number
+        return [sorted(l) for l in modifiedList]
 
 
     _modesDict = {
@@ -378,13 +399,22 @@ class DynaModel:
         return verts, faces
 
 
-    def saveFile(self, filepath: str):
+    def saveFile(self):
         ''' Save the parsed file to a new file
         '''
-        with open(filepath, 'w') as f:
-            # f.write(self._file)
-            pass
+        pass
+        # modifiedList = self.__createModifiedList__()
 
+        # for i, modifiedLineNums in enumerate(modifiedList):
+        #     if len(modifiedLineNums) == 0:
+        #         continue
+
+        #     with fileinput.input(self.filepaths[i], inplace=True) as file:
+        #         for lineNum, line in enumerate(file, start=1):
+        #             if lineNum in modifiedLineNums:
+        #                 print(new_lines[line_indices.index(lineNum)], end="")
+        #             else:
+        #                 print(line, end="")
 
 
 #===================================================================================================

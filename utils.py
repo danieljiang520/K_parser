@@ -44,17 +44,17 @@ class ELEMENT_TYPE(Enum):
 class Node():
     ''' Class for storing the information of a node
     '''
-    def __init__(self, plist=(0, 0, 0), lineNum: int=None):
+    def __init__(self, plist=(0, 0, 0), fileInd: int=None, lineNum: int=None):
         ''' Initialize the node with a list of coordinates and a line number
         '''
         # the coordinates are stored as a tuple
         self._coord = plist
 
-        # line number
-        self._lineNum = lineNum
+        # source file index and line number
+        self._source = (fileInd, lineNum)
 
         # modified flag
-        self._modified = False
+        self.modified = False
 
     @property
     def coord(self):
@@ -68,37 +68,19 @@ class Node():
         '''
         if isinstance(value, Node):  # passing a node
             self._coord = copy.deepcopy(value._coord)
-        elif is_sequence(value):  # passing a tuple or a list
+        elif isinstance(value, tuple):  # passing a tuple or a list
             self._coord = value
         else:
             raise ValueError("Invalid input type for Node")
 
         # set the modified flag
-        self._modified = True
-
-    @coord.deleter
-    def coord(self):
-        ''' Delete the coordinates of the node
-        '''
-        del self._coord
+        self.modified = True
 
     @property
-    def lineNum(self):
-        ''' Return the line number of the node
+    def source(self):
+        ''' Return the source of the node
         '''
-        return self._lineNum
-
-    @lineNum.setter
-    def lineNum(self, value):
-        ''' Set the line number of the node
-        '''
-        if isinstance(value, int):
-            self._lineNum = value
-        else:
-            raise ValueError("Invalid input type for Node")
-
-        # set the modified flag
-        self._modified = True
+        return self._source
 
     def __str__(self) -> str:
         return f"Node({self._coord})"
@@ -107,7 +89,7 @@ class Node():
 class Element():
     ''' Class for storing the information of an element
     '''
-    def __init__(self, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, lineNum: int=None):
+    def __init__(self, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, fileInd: int=None, lineNum: int=None):
 
         # nodes
         self._nodes = nodes
@@ -115,12 +97,11 @@ class Element():
         # type
         self._type = type
 
-        # line number
-        self._lineNum = lineNum
+        # source file index and line number
+        self._source = (fileInd, lineNum)
 
         # modified flag
-        self._modified = False
-
+        self.modified = False
 
     @property
     def nodes(self):
@@ -139,7 +120,7 @@ class Element():
             raise ValueError("Invalid input type for Element")
 
         # set the modified flag
-        self._modified = True
+        self.modified = True
 
     @property
     def type(self):
@@ -157,25 +138,13 @@ class Element():
             raise ValueError("Invalid input type for Element")
 
         # set the modified flag
-        self._modified = True
+        self.modified = True
 
     @property
-    def lineNum(self):
-        ''' Return the line number of the element
+    def source(self):
+        ''' Return the source of the element
         '''
-        return self._lineNum
-
-    @lineNum.setter
-    def lineNum(self, value):
-        ''' Set the line number of the element
-        '''
-        if isinstance(value, int):
-            self._lineNum = value
-        else:
-            raise ValueError("Invalid input type for Element")
-
-        # set the modified flag
-        self._modified = True
+        return self._source
 
     def __str__(self) -> str:
         return f"Element_{self._type}({self._nodes})"
@@ -184,17 +153,14 @@ class Element():
 class Part():
     ''' Class for storing the information of a part
     '''
-    def __init__(self,  elements: list[Element]=[], lineNum: int=None, lineLastNum: int=None, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, tmid: int=0):
+    def __init__(self,  elements: list[Element]=[], fileInd: int=None, lineNum: int=None, lineLastNum: int=None, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, tmid: int=0):
         ''' Initialize the part with a list of elements and a line number
         '''
         # the elements are stored as a set
         self._elements = set(elements)
 
-        # line number of the header
-        self._lineNum = lineNum
-
-        # line number of the last line
-        self._lineLastNum = lineLastNum
+        # source file index and line number
+        self._source = (fileInd, lineNum, lineLastNum)
 
         # other part data
         self._header = header
@@ -207,7 +173,7 @@ class Part():
         self._tmid = tmid
 
         # modified flag
-        self._modified = False
+        self.modified = False
 
     @property
     def elements(self):
@@ -225,43 +191,13 @@ class Part():
             raise ValueError("Invalid input type for Part")
 
         # set the modified flag
-        self._modified = True
+        self.modified = True
 
     @property
-    def lineNum(self):
-        ''' Return the line number of the part
+    def source(self):
+        ''' Return the source of the part
         '''
-        return self._lineNum
-
-    @lineNum.setter
-    def lineNum(self, value):
-        ''' Set the line number of the part
-        '''
-        if isinstance(value, int):
-            self._lineNum = value
-        else:
-            raise ValueError("Invalid input type for Part")
-
-        # set the modified flag
-        self._modified = True
-
-    @property
-    def lineLastNum(self):
-        ''' Return the line number of the last line of the part
-        '''
-        return self._lineLastNum
-
-    @lineLastNum.setter
-    def lineLastNum(self, value):
-        ''' Set the line number of the last line of the part
-        '''
-        if isinstance(value, int):
-            self._lineLastNum = value
-        else:
-            raise ValueError("Invalid input type for Part")
-
-        # set the modified flag
-        self._modified = True
+        return self._source
 
     def getPartData(self):
         ''' Return the PART data given its ID
