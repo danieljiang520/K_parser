@@ -250,11 +250,11 @@ class DynaModel:
                 return
             else:
                 newElement = Element(eid=self.negEid, nodes=nodes, type=elementType, source=(kline.fileInd, kline.lineNum), priorEid=eid)
+                self.elementDict[self.negEid] = newElement
                 self.negEid -= 1
         else:
             newElement = Element(eid=eid, nodes=nodes, type=elementType, source=(kline.fileInd, kline.lineNum))
-
-        self.elementDict[eid] = newElement
+            self.elementDict[eid] = newElement
 
         # Check if Part exists and Part's element type matches (each Part can only have one type of elements)
         if pid not in self.partsDict:
@@ -451,7 +451,7 @@ class DynaModel:
 
         if verbose:
             print(f"Unreferenced nodes: {len(self.nodesDict) - len(verts)}")
-            print(f"Unreferenced elements: {len(self.elementDict) - len(elements)}, {len(self.elementDict)}, {len(elements)}")
+            print(f"Unreferenced elements: {len(self.elementDict) - len(elements)}")
 
         # Create a mapping from the new vertex list to the new index
         vert_map = dict(zip(verts, range(len(verts))))
