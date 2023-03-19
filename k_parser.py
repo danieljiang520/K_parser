@@ -536,9 +536,11 @@ if __name__ == "__main__":
     print(f"last vert: {verts[-1]}")
     print(f"last face: {faces[-1]}")
 
+    # Examples for modifying the Manual-chair file
     node.coord = (0,0,0)
     element.nodes = [node, node, node, node]
     part.header = "PART 210002"
     k_parser.saveFile()
+
     print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()
