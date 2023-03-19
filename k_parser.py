@@ -92,6 +92,8 @@ class DynaModel:
         elementDict: dict[int, Element] - dictionary of elements with element id as key.
         partsDict: dict[int, Part] - dictionary of parts with part id as key.
         '''
+
+        # NOTE: in the future, we should use a local database (such as SQLite) to store the data for better filtering performance
         self.nodesDict = defaultdict(Node)
         self.elementDict = defaultdict(Element)
         self.partsDict = defaultdict(Part)
@@ -481,14 +483,17 @@ class DynaModel:
                         continue
 
                     if lineNum in modifiedList:
-                        prevEnd = modifiedList[lineNum][0]
 
                         obj = modifiedList[lineNum][1]
                         # NOTE: using default separator (CSV) for now. Plan to dynamically change this to match the input file in the future
                         if isinstance(obj, Element):
-                            print(obj.toK(modifiedList[lineNum][2]), end='\n')
+                            print(obj.toK(pid=modifiedList[lineNum][2], sep=', '), end='\n')
+                            prevEnd = modifiedList[lineNum][0]
+                        elif isinstance(obj, Node) or isinstance(obj, Part):
+                            print(obj.toK(sep=', '), end='\n')
+                            prevEnd = modifiedList[lineNum][0]
                         else:
-                            print(obj.toK(), end='\n')
+                            eprint(f"Object type not recognized: {type(obj)}")
                     else:
                         print(line, end='')
 
