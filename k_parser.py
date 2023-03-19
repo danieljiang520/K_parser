@@ -396,7 +396,7 @@ class DynaModel:
         return [node.getCoord() for node in self.nodesDict]
 
 
-    def getElement(self, eid: int, elementType: ELEMENT_TYPE) -> Element:
+    def getElement(self, eid: int) -> Element:
         ''' Return the ELEMENT given its ID
         '''
         if eid not in self.elementDict:
@@ -535,7 +535,7 @@ if __name__ == "__main__":
     verts, faces = k_parser.getAllPartsData(verbose=True)
     # verts, faces = k_parser.getPartData(250004) # Manual-chair
     node = k_parser.getNode(2112223) # Manual-chair
-    element = k_parser.getElement(2110001, ELEMENT_TYPE.SHELL) # Manual-chair
+    element = k_parser.getElement(2110001) # Manual-chair
     part = k_parser.getPart(210002) # Manual-chair
 
     print(f"len(verts): {len(verts)}")
