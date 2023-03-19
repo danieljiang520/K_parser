@@ -44,9 +44,12 @@ class ELEMENT_TYPE(Enum):
 class Node():
     ''' Class for storing the information of a node
     '''
-    def __init__(self, plist=(0, 0, 0), source: tuple[int, int]=None):
+    def __init__(self, nid, plist=(0, 0, 0), source: tuple[int, int]=None):
         ''' Initialize the node with a list of coordinates and a line number
         '''
+        # node id
+        self._nid = nid
+
         # the coordinates are stored as a tuple
         self._coord = plist
 
@@ -55,6 +58,12 @@ class Node():
 
         # modified flag
         self.modified = False
+
+    @property
+    def nid(self):
+        ''' Return the node id of the node
+        '''
+        return self._nid
 
     @property
     def coord(self):
@@ -83,13 +92,21 @@ class Node():
         return self._source
 
     def __str__(self) -> str:
-        return f"Node({self._coord})"
+        return f"Node({self.coord})"
+
+    def toK(self, sep=", "):
+        ''' Return the node in K format
+        '''
+        return f"{self.nid}{sep}{self.coord[0]}{sep}{self.coord[1]}{sep}{self.coord[2]}"
 
 
 class Element():
     ''' Class for storing the information of an element
     '''
-    def __init__(self, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, source: tuple[int, int]=None):
+    def __init__(self, eid, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, source: tuple[int, int]=None):
+
+        # element id
+        self._eid = eid
 
         # nodes
         self._nodes = nodes
@@ -102,6 +119,12 @@ class Element():
 
         # modified flag
         self.modified = False
+
+    @property
+    def eid(self):
+        ''' Return the element id of the element
+        '''
+        return self._eid
 
     @property
     def nodes(self):
@@ -147,22 +170,30 @@ class Element():
         return self._source
 
     def __str__(self) -> str:
-        return f"Element_{self._type}({self._nodes})"
+        return f"Element_{self.type}({self.nodes})"
+
+    def toK(self, pid, sep=", "):
+        ''' Return the element in K format
+        '''
+        return f"{self.eid}{sep}{pid}{sep}{sep.join([str(node) for node in self.nodes])}"
 
 
 class Part():
     ''' Class for storing the information of a part
     '''
-    def __init__(self,  elements: list[Element]=[], elementType: ELEMENT_TYPE=ELEMENT_TYPE.UNKNOWN, source: tuple[int, int, int]=None, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, tmid: int=0):
+    def __init__(self, pid, elements: list[Element]=[], elementType: ELEMENT_TYPE=ELEMENT_TYPE.UNKNOWN, source: tuple[int, int, int]=None, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, tmid: int=0):
         ''' Initialize the part with a list of elements and a line number
         '''
+        # part id
+        self._pid = pid
+
         # the elements are stored as a set
         self._elements = set(elements)
 
         # element type
         self._elementType = elementType
 
-        # source file index and line number
+        # source: (file index, line number, last line number (inclusive))
         self._source = source
 
         # other part data
@@ -177,6 +208,12 @@ class Part():
 
         # modified flag
         self.modified = False
+
+    @property
+    def pid(self):
+        ''' Return the part id of the part
+        '''
+        return self._pid
 
     @property
     def elements(self):
@@ -230,6 +267,11 @@ class Part():
 
     def __str__(self) -> str:
         return f"Part({self._elements})"
+
+    def toK(self, sep=", "):
+        ''' Return the part in K format
+        '''
+        return f"{self._header}\n{self.pid}{sep}{self._secid}{sep}{self._mid}{sep}{self._eosid}{sep}{self._hgid}{sep}{self._grav}{sep}{self._adpopt}{sep}{self._tmid}"
 
 
 

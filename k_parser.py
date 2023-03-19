@@ -4,7 +4,7 @@
 
 # %% standard lib imports
 from collections import defaultdict
-import re, argparse, fileinput
+import argparse, csv, fileinput, re
 from typing import Union
 
 # %% first party imports
@@ -72,6 +72,11 @@ class KLine:
 class DynaModel:
     ''' Parser for reading LS-DYNA k files
     '''
+
+    # Spacing/Separator for printing (default to CSV format). Can be updated to match the input file
+    nodesSeparator = ", "
+    elementsSeparator = ", "
+    partsSeparator = ", "
 
     def __init__(self, args: Union[list[str],  str]) -> None:
         ''' Initialize DynaModel
@@ -155,7 +160,7 @@ class DynaModel:
 
         # NOTE: might not need to use and try and except block since make3d will check for this
         try:
-            id = int(kline.values[0])
+            nid = int(kline.values[0])
             coord = (float(kline.values[1]), float(kline.values[2]), float(kline.values[3]))
         except ValueError:
             # Check if the types of id and pos are correct
@@ -163,19 +168,19 @@ class DynaModel:
             return
 
         # Check if id already exists
-        if id in self.nodesDict:
-            node = self.nodesDict[id]
+        if nid in self.nodesDict:
+            node = self.nodesDict[nid]
             if node.source is not None:
-                eprint(f"Invalid {kline.keyword.name}: Repeated node; id: {id}, coord: {coord}")
+                eprint(f"Invalid {kline.keyword.name}: Repeated node; id: {nid}, coord: {coord}")
                 return
             else:
                 # Update node
                 # NOTE: by specifying _coord and _source, we are updating the node quietly (without marking modified)
-                self.nodesDict[id]._coord = coord
-                self.nodesDict[id]._source = (kline.fileInd, kline.lineNum)
+                self.nodesDict[nid]._coord = coord
+                self.nodesDict[nid]._source = (kline.fileInd, kline.lineNum)
         else:
             # Add node to dictionary
-            self.nodesDict[id] = Node(coord, (kline.fileInd, kline.lineNum))
+            self.nodesDict[nid] = Node(nid, coord, (kline.fileInd, kline.lineNum))
 
 
     def __ELEMENT__(self, kline: KLine, keyword_args) -> None:
@@ -216,7 +221,7 @@ class DynaModel:
 
                 if nid not in self.nodesDict:
                     # Add node to dictionary
-                    self.nodesDict[nid] = Node()
+                    self.nodesDict[nid] = Node(nid=nid)
                 nodes.append(self.nodesDict[nid])
 
         except ValueError:
@@ -229,13 +234,13 @@ class DynaModel:
             eprint(f"Repeated element: eid: {eid}, pid: {pid}, elementType: {elementType}")
             return
 
-        newElement = Element(nodes, elementType, (kline.fileInd, kline.lineNum))
+        newElement = Element(eid=eid, nodes=nodes, type=elementType, source=(kline.fileInd, kline.lineNum))
         self.elementDict[(eid, elementType)] = newElement
 
         # Check if Part exists and Part's element type matches (each Part can only have one type of elements)
         if pid not in self.partsDict:
             # Specify element type
-            self.partsDict[pid]._elementType = elementType
+            self.partsDict[pid] = Part(pid=pid, elementType=elementType)
 
         else:
             # Check if element type matches
@@ -262,7 +267,7 @@ class DynaModel:
 
         # Must have at least one argument: pid
         # NOTE: in the DYNA datasheet, it has pid, secid, mid, eosid, hgid, grav, adpopt, tmid listed as required arguments
-        # However, in the some files, there are only pid, secid, and mid. Therefore, we only check for pid
+        # However, in some files, there are only pid, secid, and mid. Therefore, we only check for pid
         if len(klineList[1].values) < 1:
             eprint(f"Invalid PART: too less arguments: {klineList[1].values}")
             return
@@ -270,16 +275,26 @@ class DynaModel:
         vals = [int(i) for i in klineList[1].values] + [0] * (8 - len(klineList[1].values))
         pid, secid, mid, eosid, hgid, grav, adpopt, tmid = vals
 
-        self.partsDict[pid].lineNum = klineList[0].lineNum
-        self.partsDict[pid].lineLastNum = klineList[-1].lineNum
-        self.partsDict[pid].header = header
-        self.partsDict[pid].secid = secid
-        self.partsDict[pid].mid = mid
-        self.partsDict[pid].eosid = eosid
-        self.partsDict[pid].hgid = hgid
-        self.partsDict[pid].grav = grav
-        self.partsDict[pid].adpopt = adpopt
-        self.partsDict[pid].tmid = tmid
+        # Check duplicate Part
+        if pid in self.partsDict:
+            if self.partsDict[pid].source is not None:
+                eprint(f"Repeated Part: pid: {pid}")
+                return
+            else:
+                # Update Part
+                self.partsDict[pid]._source = (klineList[0].fileInd, klineList[0].lineNum, klineList[-1].lineNum)
+
+                self.partsDict[pid]._header = header
+                self.partsDict[pid]._secid = secid
+                self.partsDict[pid]._mid = mid
+                self.partsDict[pid]._eosid = eosid
+                self.partsDict[pid]._hgid = hgid
+                self.partsDict[pid]._grav = grav
+                self.partsDict[pid]._adpopt = adpopt
+                self.partsDict[pid]._tmid = tmid
+        else:
+            # Add Part to dictionary
+            self.partsDict[pid] = Part(pid=pid, source=(klineList[0].fileInd, klineList[0].lineNum, klineList[-1].lineNum), header=header, secid=secid, mid=mid, eosid=eosid, hgid=hgid, grav=grav, adpopt=adpopt, tmid=tmid)
 
 
     def __KEYWORD__(self, kline: KLine):
@@ -293,21 +308,20 @@ class DynaModel:
     def __createModifiedList__(self):
         ''' Create a list of the sources of modified nodes, elements and parts
         '''
-        modifiedList = [[] for _ in range(len(self.filepaths))]
+        modifiedLists = [{} for _ in range(len(self.filepaths))]
         for node in self.nodesDict.values():
             if node.modified:
-                modifiedList[node.source[0]].append((node.source[1], node))
+                modifiedLists[node.source[0]][node.source[1]] = (node.source[1], node)
 
         for element in self.elementDict.values():
             if element.modified:
-                modifiedList[element.source[0]].append((element.source[1], element))
+                modifiedLists[element.source[0]][element.source[1]] = (element.source[1], element)
 
         for part in self.partsDict.values():
             if part.modified:
-                modifiedList[part.source[0]].append((part.source[1], part))
+                modifiedLists[part.source[0]][part.source[1]] = (part.source[2], part)
 
-        # Sort the list by line number
-        return [sorted(l, key=lambda element: element[0]) for l in modifiedList]
+        return modifiedLists
 
 
     _modesDict = {
@@ -415,23 +429,27 @@ class DynaModel:
     def saveFile(self):
         ''' Save the parsed file to a new file
         '''
-        modifiedList = self.__createModifiedList__()
+        modifiedLists = self.__createModifiedList__()
         print(f"Modified list: {modifiedList}")
 
-        for i, modifiedList in enumerate(modifiedList):
+        for i, modifiedList in enumerate(modifiedLists):
             if len(modifiedList) == 0:
                 continue
 
-            lineNums, object = zip(*modifiedList)
+            prevEnd = -1
 
             # The fileinput.input function is used to read the contents of the file and replace the lines in place.
             # The inplace=True argument ensures that the changes are written back to the file.
             with fileinput.input(self.filepaths[i], inplace=True) as file:
-                for lineNum, line in enumerate(file, start=1):
-                    if lineNum in lineNums:
-                        print(object, end="")
+                for lineNum, line in enumerate(file):
+                    if lineNum <= prevEnd:
+                        continue
+
+                    if lineNum in modifiedList:
+                        prevEnd = modifiedList[lineNum][0]
+                        print(modifiedList[lineNum][1].toK())
                     else:
-                        print(line, end="")
+                        print(line)
 
 
 #===================================================================================================
