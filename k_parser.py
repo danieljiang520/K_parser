@@ -82,7 +82,9 @@ class DynaModel:
         partsDict: dict[int, Part] - dictionary of parts with part id as key.
         '''
         self.nodesDict = defaultdict(Node)
-        self.elementDict = defaultdict(Element) # need to be indexed by (eid, pid)
+        # Elements need to be indexed by (eid, ELEMENT_TYPE)
+        # e.g., an element_solid and element_shell might have the same eid
+        self.elementDict = defaultdict(Element)
         self.partsDict = defaultdict(Part)
 
         self.filepaths = []
@@ -173,7 +175,7 @@ class DynaModel:
                 self.nodesDict[id]._source = (kline.fileInd, kline.lineNum)
         else:
             # Add node to dictionary
-            self.nodesDict[id] = Node(coord, kline.fileInd, kline.lineNum)
+            self.nodesDict[id] = Node(coord, (kline.fileInd, kline.lineNum))
 
 
     def __ELEMENT__(self, kline: KLine, keyword_args) -> None:
@@ -185,21 +187,21 @@ class DynaModel:
             eprint(f"Invalid {kline.keyword.name}: too less arguments; args: {kline.values}")
             return
 
-        type = ELEMENT_TYPE[keyword_args[0]] if keyword_args[0] in ELEMENT_TYPE._member_names_ else ELEMENT_TYPE.UNKNOWN
+        elementType = ELEMENT_TYPE[keyword_args[0]] if keyword_args[0] in ELEMENT_TYPE._member_names_ else ELEMENT_TYPE.UNKNOWN
 
         # Element type specific settings
         numNodes = 0
-        if type == ELEMENT_TYPE.UNKNOWN:
+        if elementType == ELEMENT_TYPE.UNKNOWN:
             # Disregard unknown element type
             # eprint(f"Invalid {kline.keyword.name}: unknown element type; args: {kline.values}")
             return
-        elif type == ELEMENT_TYPE.BEAM:
+        elif elementType == ELEMENT_TYPE.BEAM:
             numNodes = 3
-        elif type == ELEMENT_TYPE.DISCRETE:
+        elif elementType == ELEMENT_TYPE.DISCRETE:
             numNodes = 2
-        elif type == ELEMENT_TYPE.SHELL:
+        elif elementType == ELEMENT_TYPE.SHELL:
             numNodes = 8
-        elif type == ELEMENT_TYPE.SOLID:
+        elif elementType == ELEMENT_TYPE.SOLID:
             numNodes = 8
 
         try:
@@ -222,19 +224,30 @@ class DynaModel:
             eprint(f"Invalid {kline.keyword.name}: bad type; args: {kline.values}")
             return
 
-        # Add element to dictionary
-        if (eid, pid) in self.elementDict:
-            # NOTE: This is a repeated element
-            # e.g., element_solid and element_shell might have the same eid
-            print(f"Repeated element: eid: {eid}, pid: {pid}")
-            # self.elementDict[(eid, pid)].nodes = nodes
-            # self.elementDict[(eid, pid)].addType(type)
-            # self.elementDict[(eid, pid)].addLineNum(kline.lineNum)
-        else:
-            self.elementDict[(eid, pid)] = Element(nodes, type, kline.fileInd, kline.lineNum)
+        # This is a repeated element with the same id and type!
+        if (eid, elementType) in self.elementDict:
+            eprint(f"Repeated element: eid: {eid}, pid: {pid}, elementType: {elementType}")
+            return
 
-        # NOTE: an element can be used by multiple parts. Add element to part
-        self.partsDict[pid].elements.add(self.elementDict[(eid, pid)])
+        newElement = Element(nodes, elementType, (kline.fileInd, kline.lineNum))
+        self.elementDict[(eid, elementType)] = newElement
+
+        # Check if Part exists and Part's element type matches (each Part can only have one type of elements)
+        if pid not in self.partsDict:
+            # Specify element type
+            self.partsDict[pid]._elementType = elementType
+
+        else:
+            # Check if element type matches
+            if len(self.partsDict[pid].elements) == 0:
+                self.partsDict[pid]._elementType = elementType
+
+            elif self.partsDict[pid].elementType != elementType:
+                eprint(f"Invalid {kline.keyword.name}: Part's element type mismatch; pid: {pid}, Part's element type: {self.partsDict[pid]._elementType}, element type: {elementType}")
+                return
+
+        # Add element to Part
+        self.partsDict[pid].elements.add(newElement)
 
 
     def __PART__(self, klineList: list[KLine], keyword_args) -> None:
@@ -334,13 +347,13 @@ class DynaModel:
         return [node.getCoord() for node in self.nodesDict]
 
 
-    def getElement(self, eid: int, pid: int) -> Element:
+    def getElement(self, eid: int, elementType: ELEMENT_TYPE) -> Element:
         ''' Return the ELEMENT given its ID
         '''
-        if (eid, pid) not in self.elementDict:
+        if (eid, elementType) not in self.elementDict:
             eprint(f"Element id: {eid} not in elementShellDict")
             return None
-        return self.elementDict[(eid, pid)]
+        return self.elementDict[(eid, elementType)]
 
 
     def getElementCoords(self, element: Union[int, Element]) -> list[tuple[float, float, float]]:

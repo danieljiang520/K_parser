@@ -44,14 +44,14 @@ class ELEMENT_TYPE(Enum):
 class Node():
     ''' Class for storing the information of a node
     '''
-    def __init__(self, plist=(0, 0, 0), fileInd: int=None, lineNum: int=None):
+    def __init__(self, plist=(0, 0, 0), source: tuple[int, int]=None):
         ''' Initialize the node with a list of coordinates and a line number
         '''
         # the coordinates are stored as a tuple
         self._coord = plist
 
         # source file index and line number
-        self._source = (fileInd, lineNum)
+        self._source = source
 
         # modified flag
         self.modified = False
@@ -89,7 +89,7 @@ class Node():
 class Element():
     ''' Class for storing the information of an element
     '''
-    def __init__(self, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, fileInd: int=None, lineNum: int=None):
+    def __init__(self, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, source: tuple[int, int]=None):
 
         # nodes
         self._nodes = nodes
@@ -98,7 +98,7 @@ class Element():
         self._type = type
 
         # source file index and line number
-        self._source = (fileInd, lineNum)
+        self._source = source
 
         # modified flag
         self.modified = False
@@ -153,14 +153,17 @@ class Element():
 class Part():
     ''' Class for storing the information of a part
     '''
-    def __init__(self,  elements: list[Element]=[], fileInd: int=None, lineNum: int=None, lineLastNum: int=None, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, tmid: int=0):
+    def __init__(self,  elements: list[Element]=[], elementType: ELEMENT_TYPE=ELEMENT_TYPE.UNKNOWN, source: tuple[int, int, int]=None, header: str="", secid: int=0, mid: int=0, eosid: int=0, hgid: int=0, grav: int=0, adpopt: int=0, tmid: int=0):
         ''' Initialize the part with a list of elements and a line number
         '''
         # the elements are stored as a set
         self._elements = set(elements)
 
+        # element type
+        self._elementType = elementType
+
         # source file index and line number
-        self._source = (fileInd, lineNum, lineLastNum)
+        self._source = source
 
         # other part data
         self._header = header
@@ -192,6 +195,12 @@ class Part():
 
         # set the modified flag
         self.modified = True
+
+    @property
+    def elementType(self):
+        ''' Return the element type of the part
+        '''
+        return self._elementType
 
     @property
     def source(self):
