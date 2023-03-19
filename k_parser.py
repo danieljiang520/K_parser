@@ -4,7 +4,7 @@
 
 # %% standard lib imports
 from collections import defaultdict
-import argparse, csv, fileinput, re
+import argparse, fileinput, re
 from typing import Union
 
 # %% first party imports
@@ -58,6 +58,12 @@ class KLine:
 
         # Everything else
         else:
+            # If the current line is a Part header
+            if currKeyword is KEYWORD_TYPE.PART and len(line) == 1 and isinstance(line[0], str):
+                self.is_part_header = True
+            else:
+                self.is_part_header = False
+
             self.is_valid = True
             self.is_keyword = False
             self.keyword = currKeyword
@@ -143,7 +149,13 @@ class DynaModel:
                 elif kline.keyword in self._modesDict:
                     # if keyword is PART, Add kline to partlist
                     if kline.keyword is KEYWORD_TYPE.PART:
-                        partList.append(kline)
+                        # if the current line is a part header, execute the previous part
+                        if kline.is_part_header and len(partList) > 0:
+                            self._modesDict[kline.keyword](self, partList, currKeyword.keyword_args)
+                            partList = [kline]
+                        else:
+                            partList.append(kline)
+
                     # Execute line
                     else:
                         self._modesDict[kline.keyword](self, kline, currKeyword.keyword_args)
@@ -308,20 +320,36 @@ class DynaModel:
     def __createModifiedList__(self):
         ''' Create a list of the sources of modified nodes, elements and parts
         '''
+        # Create a list of dictionaries
+        # NOTE: it is perhaps better to use a list of sorted lists
         modifiedLists = [{} for _ in range(len(self.filepaths))]
+
         for node in self.nodesDict.values():
             if node.modified:
                 modifiedLists[node.source[0]][node.source[1]] = (node.source[1], node)
 
         for element in self.elementDict.values():
             if element.modified:
-                modifiedLists[element.source[0]][element.source[1]] = (element.source[1], element)
+                modifiedLists[element.source[0]][element.source[1]] = (element.source[1], element, self.__findElementPartCorrespondences__(element))
+                # modifiedElements.add(element)
 
         for part in self.partsDict.values():
             if part.modified:
                 modifiedLists[part.source[0]][part.source[1]] = (part.source[2], part)
 
         return modifiedLists
+
+    def __findElementPartCorrespondences__(self, element: Element):
+        ''' Find the parts that the element belongs to
+        '''
+        for part in self.partsDict.values():
+            if part.elementType != element.type:
+                continue
+
+            if element in part.elements:
+                return part.pid
+
+        return None
 
 
     _modesDict = {
@@ -430,7 +458,7 @@ class DynaModel:
         ''' Save the parsed file to a new file
         '''
         modifiedLists = self.__createModifiedList__()
-        print(f"Modified list: {modifiedList}")
+        print(f"Modified list: {modifiedLists}")
 
         for i, modifiedList in enumerate(modifiedLists):
             if len(modifiedList) == 0:
@@ -447,9 +475,15 @@ class DynaModel:
 
                     if lineNum in modifiedList:
                         prevEnd = modifiedList[lineNum][0]
-                        print(modifiedList[lineNum][1].toK())
+
+                        obj = modifiedList[lineNum][1]
+                        # NOTE: using default separator (CSV) for now. Plan to dynamically change this to match the input file in the future
+                        if isinstance(obj, Element):
+                            print(obj.toK(modifiedList[lineNum][2]), end='\n')
+                        else:
+                            print(obj.toK(), end='\n')
                     else:
-                        print(line)
+                        print(line, end='')
 
 
 #===================================================================================================
@@ -494,14 +528,17 @@ if __name__ == "__main__":
     verts, faces = k_parser.getAllPartsData(verbose=True)
     # verts, faces = k_parser.getPartData(250004) # Manual-chair
     node = k_parser.getNode(2112223) # Manual-chair
-    # coords = k_parser.getElementCoords(2110001) # Manual-chair
+    element = k_parser.getElement(2110001, ELEMENT_TYPE.SHELL) # Manual-chair
+    part = k_parser.getPart(210002) # Manual-chair
 
     print(f"len(verts): {len(verts)}")
     print(f"len(faces): {len(faces)}")
     print(f"last vert: {verts[-1]}")
     print(f"last face: {faces[-1]}")
 
-    # node.coord = (0,0,0)
-    # k_parser.saveFile()
+    node.coord = (0,0,0)
+    element.nodes = [node, node, node, node]
+    part.header = "PART 210002"
+    k_parser.saveFile()
     print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()

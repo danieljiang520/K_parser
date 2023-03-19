@@ -97,7 +97,7 @@ class Node():
     def toK(self, sep=", "):
         ''' Return the node in K format
         '''
-        return f"{self.nid}{sep}{self.coord[0]}{sep}{self.coord[1]}{sep}{self.coord[2]}"
+        return f" {self.nid}{sep}{self.coord[0]}{sep}{self.coord[1]}{sep}{self.coord[2]}"
 
 
 class Element():
@@ -137,7 +137,7 @@ class Element():
         ''' Set the nodes of the element
         '''
         # NOTE: there can be duplicate nodes in an element
-        if is_sequence(value):
+        if is_sequence(value) and all(isinstance(node, Node) for node in value):
             self._nodes = value
         else:
             raise ValueError("Invalid input type for Element")
@@ -175,7 +175,7 @@ class Element():
     def toK(self, pid, sep=", "):
         ''' Return the element in K format
         '''
-        return f"{self.eid}{sep}{pid}{sep}{sep.join([str(node) for node in self.nodes])}"
+        return f" {self.eid}{sep}{pid}{sep}{sep.join([str(node.nid) for node in self.nodes])}"
 
 
 class Part():
@@ -225,7 +225,7 @@ class Part():
     def elements(self, value):
         ''' Set the elements of the part
         '''
-        if is_sequence(value):
+        if is_sequence(value) and all(isinstance(elem, Element) for elem in value):
             self._elements = set(value)
         else:
             raise ValueError("Invalid input type for Part")
@@ -239,11 +239,167 @@ class Part():
         '''
         return self._elementType
 
+    @elementType.setter
+    def elementType(self, value):
+        ''' Set the element type of the part
+        '''
+        if isinstance(value, ELEMENT_TYPE):
+            self._elementType = value
+        else:
+            raise ValueError("Invalid input type for Part")
+
+        # set the modified flag
+        self.modified = True
+
     @property
     def source(self):
         ''' Return the source of the part
         '''
         return self._source
+
+    @property
+    def header(self):
+        ''' Return the header of the part
+        '''
+        return self._header
+
+    @header.setter
+    def header(self, value):
+        ''' Set the header of the part
+        '''
+        if isinstance(value, str):
+            self._header = value
+        else:
+            raise ValueError("Invalid input type for Part")
+
+        # set the modified flag
+        self.modified = True
+
+    @property
+    def secid(self):
+        ''' Return the secid of the part
+        '''
+        return self._secid
+
+    @secid.setter
+    def secid(self, value):
+        ''' Set the secid of the part
+        '''
+        if isinstance(value, int):
+            self._secid = value
+        else:
+            raise ValueError("Invalid input type for Part")
+
+        # set the modified flag
+        self.modified = True
+
+    @property
+    def mid(self):
+        ''' Return the mid of the part
+        '''
+        return self._mid
+
+    @mid.setter
+    def mid(self, value):
+        ''' Set the mid of the part
+        '''
+        if isinstance(value, int):
+            self._mid = value
+        else:
+            raise ValueError("Invalid input type for Part")
+
+        # set the modified flag
+        self.modified = True
+
+    @property
+    def eosid(self):
+        ''' Return the eosid of the part
+        '''
+        return self._eosid
+
+    @eosid.setter
+    def eosid(self, value):
+        ''' Set the eosid of the part
+        '''
+        if isinstance(value, int):
+            self._eosid = value
+        else:
+            raise ValueError("Invalid input type for Part")
+
+        # set the modified flag
+        self.modified = True
+
+    @property
+    def hgid(self):
+        ''' Return the hgid of the part
+        '''
+        return self._hgid
+
+    @hgid.setter
+    def hgid(self, value):
+        ''' Set the hgid of the part
+        '''
+        if isinstance(value, int):
+            self._hgid = value
+        else:
+            raise ValueError("Invalid input type for Part")
+
+        # set the modified flag
+        self.modified = True
+
+    @property
+    def grav(self):
+        ''' Return the grav of the part
+        '''
+        return self._grav
+
+    @grav.setter
+    def grav(self, value):
+        ''' Set the grav of the part
+        '''
+        if isinstance(value, int):
+            self._grav = value
+        else:
+            raise ValueError("Invalid input type for Part")
+
+        # set the modified flag
+        self.modified = True
+
+    @property
+    def adpopt(self):
+        ''' Return the adpopt of the part
+        '''
+        return self._adpopt
+
+    @adpopt.setter
+    def adpopt(self, value):
+        ''' Set the adpopt of the part
+        '''
+        if isinstance(value, int):
+            self._adpopt = value
+        else:
+            raise ValueError("Invalid input type for Part")
+
+        # set the modified flag
+        self.modified = True
+
+    @property
+    def tmid(self):
+        ''' Return the tmid of the part
+        '''
+        return self._tmid
+
+    @tmid.setter
+    def tmid(self, value):
+        ''' Set the tmid of the part
+        '''
+        if isinstance(value, int):
+            self._tmid = value
+        else:
+            raise ValueError("Invalid input type for Part")
+
+        # set the modified flag
+        self.modified = True
 
     def getPartData(self):
         ''' Return the PART data given its ID
@@ -271,7 +427,7 @@ class Part():
     def toK(self, sep=", "):
         ''' Return the part in K format
         '''
-        return f"{self._header}\n{self.pid}{sep}{self._secid}{sep}{self._mid}{sep}{self._eosid}{sep}{self._hgid}{sep}{self._grav}{sep}{self._adpopt}{sep}{self._tmid}"
+        return f"{self._header}\n {self.pid}{sep}{self._secid}{sep}{self._mid}{sep}{self._eosid}{sep}{self._hgid}{sep}{self._grav}{sep}{self._adpopt}{sep}{self._tmid}"
 
 
 
