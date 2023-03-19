@@ -93,10 +93,12 @@ class DynaModel:
         partsDict: dict[int, Part] - dictionary of parts with part id as key.
         '''
         self.nodesDict = defaultdict(Node)
-        # Elements need to be indexed by (eid, ELEMENT_TYPE)
-        # e.g., an element_solid and element_shell might have the same eid
         self.elementDict = defaultdict(Element)
         self.partsDict = defaultdict(Part)
+
+        # Ls-dyna allows duplicated element IDs, as long as they are in different element types (e.g. beam, shell, solid, etc.).
+        # e.g., an element_solid and element_shell might have the same eid
+        self.negEid = -1
 
         self.filepaths = []
         if is_list_of_strings(args):
@@ -242,12 +244,17 @@ class DynaModel:
             return
 
         # This is a repeated element with the same id and type!
-        if (eid, elementType) in self.elementDict:
-            eprint(f"Repeated element: eid: {eid}, pid: {pid}, elementType: {elementType}")
-            return
+        if eid in self.elementDict:
+            if self.elementDict[eid].type == elementType:
+                eprint(f"Repeated element: eid: {eid}, pid: {pid}, elementType: {elementType}")
+                return
+            else:
+                newElement = Element(eid=self.negEid, nodes=nodes, type=elementType, source=(kline.fileInd, kline.lineNum), priorEid=eid)
+                self.negEid -= 1
+        else:
+            newElement = Element(eid=eid, nodes=nodes, type=elementType, source=(kline.fileInd, kline.lineNum))
 
-        newElement = Element(eid=eid, nodes=nodes, type=elementType, source=(kline.fileInd, kline.lineNum))
-        self.elementDict[(eid, elementType)] = newElement
+        self.elementDict[eid] = newElement
 
         # Check if Part exists and Part's element type matches (each Part can only have one type of elements)
         if pid not in self.partsDict:
@@ -392,10 +399,10 @@ class DynaModel:
     def getElement(self, eid: int, elementType: ELEMENT_TYPE) -> Element:
         ''' Return the ELEMENT given its ID
         '''
-        if (eid, elementType) not in self.elementDict:
+        if eid not in self.elementDict:
             eprint(f"Element id: {eid} not in elementShellDict")
             return None
-        return self.elementDict[(eid, elementType)]
+        return self.elementDict[eid]
 
 
     def getElementCoords(self, element: Union[int, Element]) -> list[tuple[float, float, float]]:
@@ -444,7 +451,7 @@ class DynaModel:
 
         if verbose:
             print(f"Unreferenced nodes: {len(self.nodesDict) - len(verts)}")
-            print(f"Unreferenced elements: {len(self.elementDict) - len(elements)}")
+            print(f"Unreferenced elements: {len(self.elementDict) - len(elements)}, {len(self.elementDict)}, {len(elements)}")
 
         # Create a mapping from the new vertex list to the new index
         vert_map = dict(zip(verts, range(len(verts))))
@@ -537,10 +544,10 @@ if __name__ == "__main__":
     print(f"last face: {faces[-1]}")
 
     # Examples for modifying the Manual-chair file
-    node.coord = (0,0,0)
-    element.nodes = [node, node, node, node]
-    part.header = "PART 210002"
-    k_parser.saveFile()
+    # node.coord = (0,0,0)
+    # element.nodes = [node, node, node, node]
+    # part.header = "PART 210002"
+    # k_parser.saveFile()
 
     print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()

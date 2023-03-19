@@ -103,7 +103,7 @@ class Node():
 class Element():
     ''' Class for storing the information of an element
     '''
-    def __init__(self, eid, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, source: tuple[int, int]=None):
+    def __init__(self, eid, nodes: list[Node]=[], type=ELEMENT_TYPE.UNKNOWN, source: tuple[int, int]=None, priorEid: int=None):
 
         # element id
         self._eid = eid
@@ -116,6 +116,9 @@ class Element():
 
         # source file index and line number
         self._source = source
+
+        # prior element id
+        self._priorEid = priorEid
 
         # modified flag
         self.modified = False
@@ -169,13 +172,16 @@ class Element():
         '''
         return self._source
 
-    def __str__(self) -> str:
-        return f"Element_{self.type}({self.nodes})"
-
     def toK(self, pid, sep=", "):
         ''' Return the element in K format
         '''
         return f" {self.eid}{sep}{pid}{sep}{sep.join([str(node.nid) for node in self.nodes])}"
+
+    @property
+    def priorEid(self):
+        ''' Return the prior element id of the element
+        '''
+        return self._priorEid
 
 
 class Part():
@@ -420,9 +426,6 @@ class Part():
         # Iterate over the reduced vertex list and update the face indices
         faces = [[vert_map[v.coord] for v in element.nodes] for element in self.elements]
         return verts, faces
-
-    def __str__(self) -> str:
-        return f"Part({self._elements})"
 
     def toK(self, sep=", "):
         ''' Return the part in K format
