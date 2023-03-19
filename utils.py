@@ -172,16 +172,16 @@ class Element():
         '''
         return self._source
 
-    def toK(self, pid, sep=", "):
-        ''' Return the element in K format
-        '''
-        return f" {self.eid}{sep}{pid}{sep}{sep.join([str(node.nid) for node in self.nodes])}"
-
     @property
     def priorEid(self):
         ''' Return the prior element id of the element
         '''
         return self._priorEid
+
+    def toK(self, pid, sep=", "):
+        ''' Return the element in K format
+        '''
+        return f" {self.priorEid}{sep}{pid}{sep}{sep.join([str(node.nid) for node in self.nodes])}"
 
 
 class Part():
