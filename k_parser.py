@@ -255,7 +255,7 @@ class DynaModel:
                 self.elementDict[self.negEid] = newElement
                 self.negEid -= 1
         else:
-            newElement = Element(eid=eid, nodes=nodes, type=elementType, source=(kline.fileInd, kline.lineNum))
+            newElement = Element(eid=eid, nodes=nodes, type=elementType, source=(kline.fileInd, kline.lineNum), priorEid=eid)
             self.elementDict[eid] = newElement
 
         # Check if Part exists and Part's element type matches (each Part can only have one type of elements)
@@ -533,7 +533,7 @@ if __name__ == "__main__":
     # verts, faces = k_parser.getPartData(20003) # M50
     # coord = k_parser.getNodesCoord([100000,100001]) # M50
     # node = k_parser.getNode(100000) # M50
-    # coords = k_parser.getElementCoords(204116) # M50
+    # element = k_parser.getElement(204116) # M50
     # part = k_parser.getPart(20003) # M50
 
     # Examples for Manual-chair
@@ -551,7 +551,7 @@ if __name__ == "__main__":
     # Examples for modifying the Manual-chair file
     # node.coord = (0,0,0)
     # element.nodes = [node, node, node, node]
-    # part.header = "PART 210002"
+    # part.header = "PART NEW HEADER"
     # k_parser.saveFile()
 
     print("Displaying object with vedo...")
