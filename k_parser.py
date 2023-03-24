@@ -4,8 +4,8 @@
 
 # %% standard lib imports
 from collections import defaultdict
-import argparse, fileinput, re
 from typing import Union
+import argparse, fileinput, re
 
 # %% first party imports
 from utils import *
@@ -93,14 +93,14 @@ class DynaModel:
         partsDict: dict[int, Part] - dictionary of parts with part id as key.
         '''
 
-        # NOTE: in the future, we should use a local database (such as SQLite) to store the data for better filtering performance
+        # NOTE: in the future, we should use a local database (such as SQLite) to store the data for better performance
         self.nodesDict = defaultdict(Node)
         self.elementDict = defaultdict(Element)
         self.partsDict = defaultdict(Part)
 
         # Ls-dyna allows duplicated element IDs, as long as they are in different element types (e.g. beam, shell, solid, etc.).
         # e.g., an element_solid and element_shell might have the same eid
-        self.negEid = -1
+        self._negEid = -1
 
         self.filepaths = []
         if is_list_of_strings(args):
@@ -251,9 +251,9 @@ class DynaModel:
                 eprint(f"Repeated element: eid: {eid}, pid: {pid}, elementType: {elementType}")
                 return
             else:
-                newElement = Element(eid=self.negEid, nodes=nodes, type=elementType, source=(kline.fileInd, kline.lineNum), priorEid=eid)
-                self.elementDict[self.negEid] = newElement
-                self.negEid -= 1
+                newElement = Element(eid=self._negEid, nodes=nodes, type=elementType, source=(kline.fileInd, kline.lineNum), priorEid=eid)
+                self.elementDict[self._negEid] = newElement
+                self._negEid -= 1
         else:
             newElement = Element(eid=eid, nodes=nodes, type=elementType, source=(kline.fileInd, kline.lineNum), priorEid=eid)
             self.elementDict[eid] = newElement
