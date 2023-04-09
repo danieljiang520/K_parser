@@ -33,26 +33,37 @@ class KLine:
 
         # Empty line
         if len(line) == 0:
-            self.is_valid = False
+            self.isValid = False
             return
 
         firstItem = line[0]
 
+        # Initialize attributes
+        self.isValid = False
+        self.lineNum = lineNum
+        self.fileInd = fileInd
+        self.I10 = False
+
         # Comment or empty line (technically empty line is invalid in a k file, but we will allow it)
         if firstItem[0] == '$' or not line:
-            self.is_valid = False
+            return
 
         # Keyword line
         elif firstItem[0] == '*':
-            temp = firstItem[1:].split('_')
-            keyword = temp[0].upper()
-            keyword_args = temp[1:]
-            self.is_valid = True
-            self.is_keyword = True
+            self.isValid = True
+            self.isKeyword = True
+
+            firstUnderscoreIndex = firstItem.find('_')
+            # keyword is string up until the first underscore
+            keyword = firstItem[1:firstUnderscoreIndex].upper() if firstUnderscoreIndex != -1 else firstItem[1:].upper()
+            # sub keyword category is string after the first underscore of the first word (if it exists)
+            keywordSubtype = firstItem[firstUnderscoreIndex+1:] if firstUnderscoreIndex != -1 else None
+
             # if keyword is not defined, set keyword to UNKNOWN; otherwise, set keyword
             if keyword in KEYWORD_TYPE._member_names_:
                 self.keyword = KEYWORD_TYPE[keyword]
-                self.keyword_args = keyword_args
+                self.keywordSubtype = keywordSubtype
+                self.__readKeywordArgs(line[1:])
             else:
                 self.keyword = KEYWORD_TYPE.UNKNOWN
 
@@ -60,17 +71,29 @@ class KLine:
         else:
             # If the current line is a Part header
             if currKeyword is KEYWORD_TYPE.PART and len(line) == 1 and isinstance(line[0], str):
-                self.is_part_header = True
+                self.isPartHeader = True
             else:
-                self.is_part_header = False
+                self.isPartHeader = False
 
-            self.is_valid = True
-            self.is_keyword = False
+            self.isValid = True
+            self.isKeyword = False
             self.keyword = currKeyword
             self.values = line
 
-        self.lineNum = lineNum
-        self.fileInd = fileInd
+    def __readKeywordArgs(self, keywordArgs:list[str]) -> None:
+        ''' Read the arguments of a keyword
+        '''
+        for arg in keywordArgs:
+            temp = arg.split('=')
+            argName = temp[0].upper()
+            argValue = temp[1] if len(temp) > 1 else None
+
+            if argName == "I10":
+                self.I10 = True if argValue == 'Y' else False
+
+
+
+
 
 
 #===================================================================================================
@@ -106,10 +129,10 @@ class DynaModel:
         if is_list_of_strings(args):
             self.filepaths = args
             for fileInd, filename in enumerate(args):
-                self.__readFile__(filename, fileInd)
+                self.__readFile(filename, fileInd)
         elif isinstance(args, str):
             self.filepaths = [args]
-            self.__readFile__(args)
+            self.__readFile(args)
         else:
             eprint("unknown argument: ", args)
             return
@@ -120,52 +143,52 @@ class DynaModel:
         print(f"Total parts: {len(self.partsDict)}")
 
 
-    def __readFile__(self, filename: str, fileInd: int=0) -> None:
+    def __readFile(self, filename: str, fileInd: int=0) -> None:
         ''' Read a k file
         '''
 
         # Keyword mode
-        currKeyword = KLine()
+        currKeywordLine = KLine()
         partList = []
 
         with open(filename, "rt") as reader:
             # Read the entire file line by line
             for i, line in enumerate(reader):
-                kline = KLine(line, currKeyword.keyword, i, fileInd)
+                kline = KLine(line, currKeywordLine.keyword, i, fileInd)
 
                 # Skip comment or empty line
-                if not kline.is_valid:
+                if not kline.isValid:
                     continue
 
                 # Keyword line
-                elif kline.is_keyword:
+                elif kline.isKeyword:
                     # Execute part
                     # NOTE: PART has multiple lines of data, therefore we record all the lines and
                     # process them at the end of the section
-                    if currKeyword.keyword is KEYWORD_TYPE.PART:
-                        self._modesDict[currKeyword.keyword](self, partList, currKeyword.keyword_args)
+                    if currKeywordLine.keyword is KEYWORD_TYPE.PART:
+                        self._modesDict[currKeywordLine.keyword](self, partList, currKeywordLine)
                         partList.clear()
 
                     # Update mode
-                    currKeyword = kline
+                    currKeywordLine = kline
 
                 # Data line
                 elif kline.keyword in self._modesDict:
                     # if keyword is PART, Add kline to partlist
                     if kline.keyword is KEYWORD_TYPE.PART:
                         # if the current line is a part header, execute the previous part
-                        if kline.is_part_header and len(partList) > 0:
-                            self._modesDict[kline.keyword](self, partList, currKeyword.keyword_args)
+                        if kline.isPartHeader and len(partList) > 0:
+                            self._modesDict[kline.keyword](self, partList, currKeywordLine)
                             partList = [kline]
                         else:
                             partList.append(kline)
 
                     # Execute line
                     else:
-                        self._modesDict[kline.keyword](self, kline, currKeyword.keyword_args)
+                        self._modesDict[kline.keyword](self, kline, currKeywordLine)
 
 
-    def __NODE__(self, kline: KLine, keyword_args: list[str]) -> None:
+    def __NODE__(self, kline: KLine, currKeywordLine: KLine) -> None:
         ''' Parse NODE line
         '''
 
@@ -199,18 +222,12 @@ class DynaModel:
             self.nodesDict[nid] = Node(nid, coord, (kline.fileInd, kline.lineNum))
 
 
-    def __ELEMENT__(self, kline: KLine, keyword_args) -> None:
+    def __ELEMENT__(self, kline: KLine, currKeywordLine: KLine) -> None:
         ''' Parse ELEMENT line
         '''
 
-        # Error Handling
-        if len(kline.values) < 3:
-            eprint(f"Invalid {kline.keyword.name}: too less arguments; args: {kline.values}")
-            return
-
-        elementType = ELEMENT_TYPE[keyword_args[0]] if keyword_args[0] in ELEMENT_TYPE._member_names_ else ELEMENT_TYPE.UNKNOWN
-
         # Element type specific settings
+        elementType = ELEMENT_TYPE[currKeywordLine.keywordSubtype] if currKeywordLine.keywordSubtype in ELEMENT_TYPE._member_names_ else ELEMENT_TYPE.UNKNOWN
         numNodes = 0
         if elementType == ELEMENT_TYPE.UNKNOWN:
             # Disregard unknown element type
@@ -221,11 +238,27 @@ class DynaModel:
         elif elementType == ELEMENT_TYPE.DISCRETE:
             numNodes = 2
         elif elementType == ELEMENT_TYPE.SHELL:
-            numNodes = 8
+            numNodes = 8 # or 4
         elif elementType == ELEMENT_TYPE.SOLID:
             numNodes = 8
 
+        # Error Handling: number of arguments
+        '''
+        Fixed-length format
+        default: 8 characters per field
+        I10 (*KEYWORD I10=Y or *ELEMENT_SHELL %): 10 characters per field
+
+        e.g.,
+        *ELEMENT_SHELL
+        880880238800011488159065881792458817920788179207
+        '''
         try:
+            if len(kline.values) == 1: # Fixed-length format
+                if currKeywordLine.I10: # 10 characters per field
+                    kline.values = [kline.values[0][i:i+10] for i in range(0, len(kline.values[0]), 10)]
+                else: # 8 characters per field
+                    kline.values = [kline.values[0][i:i+8] for i in range(0, len(kline.values[0]), 8)]
+
             eid = int(kline.values[0])
             pid = int(kline.values[1])
 
@@ -240,9 +273,13 @@ class DynaModel:
                     self.nodesDict[nid] = Node(nid=nid)
                 nodes.append(self.nodesDict[nid])
 
+            if len(nodes) != numNodes and (elementType == ELEMENT_TYPE.SHELL and len(nodes) != 4):
+                eprint(f"Invalid {kline.keyword.name}_{currKeywordLine.keywordSubtype}: expected {numNodes} nodes, received {len(nodes)} nodes; args (eid, pid, nid1, nid2...): {kline.values}")
+                return
+
         except ValueError:
             # Check if the types are correct
-            eprint(f"Invalid {kline.keyword.name}: bad type; args: {kline.values}")
+            eprint(f"Invalid {kline.keyword.name}_{currKeywordLine.keywordSubtype}: bad type; args: {kline.values}")
             return
 
         # This is a repeated element with the same id and type!
@@ -269,14 +306,14 @@ class DynaModel:
                 self.partsDict[pid]._elementType = elementType
 
             elif self.partsDict[pid].elementType != elementType:
-                eprint(f"Invalid {kline.keyword.name}: Part's element type mismatch; pid: {pid}, Part's element type: {self.partsDict[pid]._elementType}, element type: {elementType}")
+                eprint(f"Invalid {kline.keyword.name}_{currKeywordLine.keywordSubtype}: Part's element type mismatch; pid: {pid}, Part's element type: {self.partsDict[pid]._elementType}, element type: {elementType}")
                 return
 
         # Add element to Part
         self.partsDict[pid].elements.add(newElement)
 
 
-    def __PART__(self, klineList: list[KLine], keyword_args) -> None:
+    def __PART__(self, klineList: list[KLine], keywordSubtype: str) -> None:
         ''' NOTE: Only reading the basic information of Part
         '''
 
@@ -326,7 +363,7 @@ class DynaModel:
         pass
 
 
-    def __createModifiedList__(self):
+    def __createModifiedList(self):
         ''' Create a list of the sources of modified nodes, elements and parts
         '''
         # Create a list of dictionaries
@@ -339,7 +376,7 @@ class DynaModel:
 
         for element in self.elementDict.values():
             if element.modified:
-                modifiedLists[element.source[0]][element.source[1]] = (element.source[1], element, self.__findElementPartCorrespondences__(element))
+                modifiedLists[element.source[0]][element.source[1]] = (element.source[1], element, self.__findElementPartCorrespondences(element))
                 # modifiedElements.add(element)
 
         for part in self.partsDict.values():
@@ -348,7 +385,7 @@ class DynaModel:
 
         return modifiedLists
 
-    def __findElementPartCorrespondences__(self, element: Element):
+    def __findElementPartCorrespondences(self, element: Element):
         ''' Find the parts that the element belongs to
         '''
         for part in self.partsDict.values():
@@ -466,7 +503,7 @@ class DynaModel:
     def saveFile(self):
         ''' Save the parsed file to a new file
         '''
-        modifiedLists = self.__createModifiedList__()
+        modifiedLists = self.__createModifiedList()
         print(f"Modified list: {modifiedLists}")
 
         for i, modifiedList in enumerate(modifiedLists):
@@ -529,7 +566,7 @@ if __name__ == "__main__":
     print("starting...")
     # Examples for M50
     # coords = k_parser.getAllNodesCoord()
-    # verts, faces = k_parser.getAllPartsData(verbose=True)
+    verts, faces = k_parser.getAllPartsData(verbose=True)
     # verts, faces = k_parser.getPartData(20003) # M50
     # coord = k_parser.getNodesCoord([100000,100001]) # M50
     # node = k_parser.getNode(100000) # M50
@@ -537,14 +574,16 @@ if __name__ == "__main__":
     # part = k_parser.getPart(20003) # M50
 
     # Examples for Manual-chair
-    verts, faces = k_parser.getAllPartsData(verbose=True)
+    # verts, faces = k_parser.getAllPartsData(verbose=True)
     # verts, faces = k_parser.getPartData(250004) # Manual-chair
-    node = k_parser.getNode(2112223) # Manual-chair
-    element = k_parser.getElement(2110001) # Manual-chair
-    part = k_parser.getPart(210002) # Manual-chair
+    # node = k_parser.getNode(2112223) # Manual-chair
+    # element = k_parser.getElement(2110001) # Manual-chair
+    # part = k_parser.getPart(210002) # Manual-chair
 
     print(f"len(verts): {len(verts)}")
     print(f"len(faces): {len(faces)}")
+    print(f"first vert: {verts[0]}")
+    print(f"first face: {faces[0]}")
     print(f"last vert: {verts[-1]}")
     print(f"last face: {faces[-1]}")
 
