@@ -30,7 +30,7 @@ class VedoViewer(DynaModel):
         return mesh.Mesh([verts, faces]).show()
 
 
-    def showPart(self, pid: int, verbose: bool=True) -> mesh.Mesh:
+    def showPart(self, pid: Union[int, str], verbose: bool=True) -> mesh.Mesh:
         verts, faces = self.getPartData(pid)
         if verbose:
             self.__debugInfo(verts, faces)
@@ -75,4 +75,5 @@ if __name__ == "__main__":
     """
 
     # display the model
-    k_viewer.showAll()
+    # k_viewer.showAll()
+    k_viewer.showPart("seatpan_cushion_2d")

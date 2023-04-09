@@ -301,7 +301,8 @@ class DynaModel:
         # Check if Part exists and Part's element type matches (each Part can only have one type of elements)
         if pid not in self.partsDict:
             # Specify element type
-            self.partsDict[pid] = Part(pid=pid, elementType=elementType)
+            newPart = Part(pid=pid, elementType=elementType)
+            self.partsDict[pid] = newPart
 
         else:
             # Check if element type matches
@@ -335,27 +336,34 @@ class DynaModel:
 
         vals = [int(i) for i in klineList[1].values] + [0] * (8 - len(klineList[1].values))
         pid, secid, mid, eosid, hgid, grav, adpopt, tmid = vals
+        identifiers = [pid, header]
 
-        # Check duplicate Part
         if pid in self.partsDict:
+            # Check duplicate Part
             if self.partsDict[pid].source is not None:
                 eprint(f"Repeated Part: pid: {pid}")
                 return
-            else:
-                # Update Part
-                self.partsDict[pid]._source = (klineList[0].fileInd, klineList[0].lineNum, klineList[-1].lineNum)
 
-                self.partsDict[pid]._header = header
-                self.partsDict[pid]._secid = secid
-                self.partsDict[pid]._mid = mid
-                self.partsDict[pid]._eosid = eosid
-                self.partsDict[pid]._hgid = hgid
-                self.partsDict[pid]._grav = grav
-                self.partsDict[pid]._adpopt = adpopt
-                self.partsDict[pid]._tmid = tmid
+            # Update Part
+            self.partsDict[pid]._source = (klineList[0].fileInd, klineList[0].lineNum, klineList[-1].lineNum)
+
+            self.partsDict[pid]._header = header
+            self.partsDict[pid]._secid = secid
+            self.partsDict[pid]._mid = mid
+            self.partsDict[pid]._eosid = eosid
+            self.partsDict[pid]._hgid = hgid
+            self.partsDict[pid]._grav = grav
+            self.partsDict[pid]._adpopt = adpopt
+            self.partsDict[pid]._tmid = tmid
+
+            # Add header to dictionary
+            if header not in self.partsDict:
+                self.partsDict[header] = self.partsDict[pid]
         else:
             # Add Part to dictionary
-            self.partsDict[pid] = Part(pid=pid, source=(klineList[0].fileInd, klineList[0].lineNum, klineList[-1].lineNum), header=header, secid=secid, mid=mid, eosid=eosid, hgid=hgid, grav=grav, adpopt=adpopt, tmid=tmid)
+            newPart = Part(pid=pid, source=(klineList[0].fileInd, klineList[0].lineNum, klineList[-1].lineNum), header=header, secid=secid, mid=mid, eosid=eosid, hgid=hgid, grav=grav, adpopt=adpopt, tmid=tmid)
+            for identifier in identifiers:
+                self.partsDict[identifier] = newPart
 
 
     def __KEYWORD__(self, kline: KLine):
@@ -459,16 +467,16 @@ class DynaModel:
         return [node.coord() for node in element.nodes]
 
 
-    def getPart(self, pid: int) -> Part:
+    def getPart(self, pid: Union[int, str]) -> Part:
         ''' Return the PART given its ID
         '''
         if pid not in self.partsDict:
-            eprint(f"Part id: {pid} not in partsDict")
+            eprint(f"Part: {pid} not in partsDict")
             return None
         return self.partsDict[pid]
 
 
-    def getPartData(self, part: Union[int, Part]):
+    def getPartData(self, pid: Union[int, str]):
         ''' Return the PART data given its ID
 
             verts = list of coordinates of the corresponding element shells.
@@ -477,10 +485,10 @@ class DynaModel:
                     mesh constructor)
                     e.g. [[n1_ind,n2_ind,n3_ind,n4_ind],[n4_ind,n5_ind,n6_ind]]
         '''
-        if isinstance(part, int):
-            part = self.getPart(part)
-
-        if not isinstance(part, Part):
+        if isinstance(pid, int) or isinstance(pid, str):
+            part = self.getPart(pid)
+        else:
+            eprint(f"Part must be an integer (pid) or a string (header)")
             return None
 
         return part.getPartData()
@@ -550,10 +558,10 @@ if __name__ == "__main__":
     args = argparser.parse_args()
 
     if args.filepaths:
-        k_viewer = DynaModel(args=args.filepaths)
+        k_parser = DynaModel(args=args.filepaths)
     elif args.directory:
         args.directory = getAllKFilesInFolder(args.directory)
-        k_viewer = DynaModel(args=args.directory)
+        k_parser = DynaModel(args=args.directory)
     else:
         eprint("No input filepaths or directory provided")
         exit(1)
@@ -568,7 +576,7 @@ if __name__ == "__main__":
     print("starting...")
     # Examples for M50
     # coords = k_parser.getAllNodesCoord()
-    verts, faces = k_viewer.getAllPartsData(verbose=True)
+    verts, faces = k_parser.getAllPartsData(verbose=True)
     # verts, faces = k_parser.getPartData(20003) # M50
     # coord = k_parser.getNodesCoord([100000,100001]) # M50
     # node = k_parser.getNode(100000) # M50
@@ -577,7 +585,8 @@ if __name__ == "__main__":
 
     # Examples for Manual-chair
     # verts, faces = k_parser.getAllPartsData(verbose=True)
-    # verts, faces = k_parser.getPartData(250004) # Manual-chair
+    # verts, faces = k_parser.getPartData(250004) # Manual-chair: front_caster_right
+    # verts, faces = k_parser.getPartData("seatpan_cushion_2d") # Manual-chair: 210002
     # node = k_parser.getNode(2112223) # Manual-chair
     # element = k_parser.getElement(2110001) # Manual-chair
     # part = k_parser.getPart(210002) # Manual-chair
@@ -587,6 +596,13 @@ if __name__ == "__main__":
     # element.nodes = [node, node, node, node]
     # part.header = "PART NEW HEADER"
     # k_parser.saveFile()
+
+    print(f"len(verts): {len(verts)}")
+    print(f"len(faces): {len(faces)}")
+    print(f"first vert: {verts[0]}")
+    print(f"first face: {faces[0]}")
+    print(f"last vert: {verts[-1]}")
+    print(f"last face: {faces[-1]}")
 
     print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()
