@@ -10,9 +10,6 @@ import argparse, fileinput, re
 # %% first party imports
 from utils import *
 
-# %% third party imports
-from vedo import mesh
-
 #===================================================================================================
 # KLine Class
 class KLine:
@@ -603,6 +600,9 @@ if __name__ == "__main__":
     print(f"first face: {faces[0]}")
     print(f"last vert: {verts[-1]}")
     print(f"last face: {faces[-1]}")
+
+    # %% third party imports
+    from vedo import mesh
 
     print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()
