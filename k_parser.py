@@ -10,6 +10,9 @@ import argparse, fileinput, re
 # %% first party imports
 from utils import *
 
+# %% third party imports
+from vedo import mesh
+
 #===================================================================================================
 # KLine Class
 class KLine:
@@ -547,10 +550,10 @@ if __name__ == "__main__":
     args = argparser.parse_args()
 
     if args.filepaths:
-        k_parser = DynaModel(args=args.filepaths)
+        k_viewer = DynaModel(args=args.filepaths)
     elif args.directory:
         args.directory = getAllKFilesInFolder(args.directory)
-        k_parser = DynaModel(args=args.directory)
+        k_viewer = DynaModel(args=args.directory)
     else:
         eprint("No input filepaths or directory provided")
         exit(1)
@@ -562,11 +565,10 @@ if __name__ == "__main__":
     python3 k_parser.py -f data/Manual-chair-geometry.k
     """
 
-    from vedo import mesh
     print("starting...")
     # Examples for M50
     # coords = k_parser.getAllNodesCoord()
-    verts, faces = k_parser.getAllPartsData(verbose=True)
+    verts, faces = k_viewer.getAllPartsData(verbose=True)
     # verts, faces = k_parser.getPartData(20003) # M50
     # coord = k_parser.getNodesCoord([100000,100001]) # M50
     # node = k_parser.getNode(100000) # M50
@@ -580,13 +582,6 @@ if __name__ == "__main__":
     # element = k_parser.getElement(2110001) # Manual-chair
     # part = k_parser.getPart(210002) # Manual-chair
 
-    print(f"len(verts): {len(verts)}")
-    print(f"len(faces): {len(faces)}")
-    print(f"first vert: {verts[0]}")
-    print(f"first face: {faces[0]}")
-    print(f"last vert: {verts[-1]}")
-    print(f"last face: {faces[-1]}")
-
     # Examples for modifying the Manual-chair file
     # node.coord = (0,0,0)
     # element.nodes = [node, node, node, node]
@@ -595,3 +590,4 @@ if __name__ == "__main__":
 
     print("Displaying object with vedo...")
     m = mesh.Mesh([verts, faces]).show()
+
