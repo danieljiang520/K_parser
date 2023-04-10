@@ -82,6 +82,14 @@ class KLine:
 
     def __readKeywordArgs(self, keywordArgs:list[str]) -> None:
         ''' Read the arguments of a keyword
+
+        Fixed-length format
+        default: 8 characters per field
+        I10 (*KEYWORD I10=Y or *ELEMENT_SHELL %): 10 characters per field
+
+        e.g.,
+        *ELEMENT_SHELL
+        880880238800011488159065881792458817920788179207
         '''
         for arg in keywordArgs:
             temp = arg.split('=')
@@ -90,6 +98,8 @@ class KLine:
 
             if argName == "I10":
                 self.I10 = True if argValue == 'Y' else False
+            elif argName == "%":
+                self.I10 = True
 
 
 
@@ -192,13 +202,18 @@ class DynaModel:
         ''' Parse NODE line
         '''
 
-        # Error Handling
-        if len(kline.values) < 4:
-            eprint(f"Invalid {kline.keyword.name}: too less arguments; args: {kline.values}")
-            return
-
         # NOTE: might not need to use and try and except block since make3d will check for this
         try:
+            if len(kline.values) == 1: # Fixed-length format
+                if currKeywordLine.I10: # 10 characters per field
+                    kline.values = splitString(kline.values[0], [10, 20, 20, 20, 10, 10], [True, True, True, True, False, False])
+                else: # 8 characters per field
+                    kline.values = splitString(kline.values[0], [8, 16, 16, 16, 8, 8], [True, True, True, True, False, False])
+
+            elif len(kline.values) < 4: # nid, x, y, z
+                eprint(f"Invalid {kline.keyword.name}: too less arguments; args: {kline.values}")
+                return
+
             nid = int(kline.values[0])
             coord = (float(kline.values[1]), float(kline.values[2]), float(kline.values[3]))
         except ValueError:
@@ -242,7 +257,6 @@ class DynaModel:
         elif elementType == ELEMENT_TYPE.SOLID:
             numNodes = 8
 
-        # Error Handling: number of arguments
         '''
         Fixed-length format
         default: 8 characters per field
@@ -255,18 +269,29 @@ class DynaModel:
         try:
             if len(kline.values) == 1: # Fixed-length format
                 if currKeywordLine.I10: # 10 characters per field
-                    kline.values = [kline.values[0][i:i+10] for i in range(0, len(kline.values[0]), 10)]
+                    length = 10
                 else: # 8 characters per field
-                    kline.values = [kline.values[0][i:i+8] for i in range(0, len(kline.values[0]), 8)]
+                    length = 8
+
+                groupLengths = [length] * (2 + numNodes)
+                # Enforce group lengths. If the element type is shell, the last 4 groups are not enforced
+                enforcedGroups = [True] * (2 + numNodes) if elementType != ELEMENT_TYPE.SHELL else [True] * 6 + [False] * 4
+                kline.values = splitString(kline.values[0], groupLengths, enforcedGroups)
+
+            if not kline.values:
+                eprint(f"Invalid {kline.keyword.name}_{currKeywordLine.keywordSubtype}: {kline.lineNum} {numNodes}")
+                return
 
             eid = int(kline.values[0])
             pid = int(kline.values[1])
 
             nodes = []
-            for nid in map(int, kline.values[2:2+numNodes]):
-                # 0 is an invalid node id
-                if nid == 0:
+            for nid in kline.values[2:2+numNodes]:
+                if not nid:
                     continue
+
+                # 0 is an invalid node id
+                nid = int(nid)
 
                 if nid not in self.nodesDict:
                     # Add node to dictionary
@@ -392,6 +417,7 @@ class DynaModel:
                 modifiedLists[part.source[0]][part.source[1]] = (part.source[2], part)
 
         return modifiedLists
+
 
     def __findElementPartCorrespondences(self, element: Element):
         ''' Find the parts that the element belongs to

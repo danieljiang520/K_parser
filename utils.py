@@ -4,11 +4,10 @@
 # -----------------------------------------------------------
 
 # %% standard lib imports
-import copy
+import copy, re
 from enum import Enum
 from pathlib import Path
 from sys import stderr
-from typing import Union
 
 #===================================================================================================
 # Enums
@@ -463,3 +462,20 @@ def getAllKFilesInFolder(folderPath: str) -> list[str]:
     ''' Return a list of all .k files in the folder
     '''
     return list(Path(folderPath).glob('*.k'))
+
+
+def splitString(s, groupLengths, enforcedGroups):
+    ''' Split a string into groups of specified lengths
+    s: string to split
+    groupLengths: list of group lengths
+    enforcedGroups: list of booleans indicating whether the group is enforced
+    '''
+    pattern = ''.join(f'(.{{{length}}})' if enforced else f'(.{{{length}}})?' for length, enforced in zip(groupLengths, enforcedGroups))
+    pattern = f'^{pattern}$'
+    match = re.match(pattern, s)
+
+    if match:
+        groups = match.groups()
+        return groups
+    else:
+        return None
