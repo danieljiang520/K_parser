@@ -75,5 +75,4 @@ if __name__ == "__main__":
     """
 
     # display the model
-    # k_viewer.showAll()
-    k_viewer.showPart("seatpan_cushion_2d")
+    k_viewer.showAll()
