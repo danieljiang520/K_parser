@@ -290,8 +290,11 @@ class DynaModel:
                 if not nid:
                     continue
 
-                # 0 is an invalid node id
                 nid = int(nid)
+
+                # 0 is an invalid node id
+                if nid == 0:
+                    continue
 
                 if nid not in self.nodesDict:
                     # Add node to dictionary
