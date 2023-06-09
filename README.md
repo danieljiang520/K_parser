@@ -1,4 +1,4 @@
-# K_parser
+# LSDYNA K_parser
 ## Requirements
 - Python 3.7+
 - Provided with pip requirements list
